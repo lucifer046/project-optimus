@@ -71,3 +71,6 @@ cache/
 # Secrets
 config/secrets.json
 credentials.json
+
+# Project specific transient status files
+Frontend/Files/*.data

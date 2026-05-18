@@ -1,2 +1,4 @@
-PyAudio
-vosk
+selenium
+mtranslate
+python-dotenv
+rich
