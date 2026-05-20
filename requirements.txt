@@ -6,3 +6,6 @@ kokoro-onnx
 sounddevice 
 numpy 
 soundfile
+openai
+cohere
+requests
