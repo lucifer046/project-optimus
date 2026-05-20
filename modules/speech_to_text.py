@@ -23,11 +23,13 @@ from dotenv import dotenv_values
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
-from rich.console import Console
-import mtranslate as mt
-
-# Console for rich terminal output
-console = Console()
+try:
+    from .utils import print_info, print_warning, print_error, print_system, print_success, print_banner, console
+except ImportError:
+    try:
+        from modules.utils import print_info, print_warning, print_error, print_system, print_success, print_banner, console
+    except ImportError:
+        from utils import print_info, print_warning, print_error, print_system, print_success, print_banner, console
 
 # HTML/JS running in-browser containing Web Speech API with VAD silence queue logic
 html_code = """<!DOCTYPE html>
@@ -175,13 +177,13 @@ class SpeechToTextEngine:
         chrome_options.add_argument("--disable-background-networking")
         chrome_options.add_argument("--disable-sync")
 
-        print("[SpeechToTextEngine] Booting headless Chrome browser session...")
+        print_system("Booting headless Chrome browser session for background STT...")
         self.driver = webdriver.Chrome(options=chrome_options)
         
         # Load the HTML code as an inline Data URL (no disk pollution!)
         data_url = "data:text/html;charset=utf-8," + urllib.parse.quote(html_code)
         self.driver.get(data_url)
-        print("[SpeechToTextEngine] Headless Chrome session ready.")
+        print_success("Headless Chrome background session active & ready.")
 
         # Resolve path to the centralized lowercase data/directory relative to project root
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -194,7 +196,7 @@ class SpeechToTextEngine:
             self.language,
             self.silence_limit_ms
         )
-        print("[SpeechToTextEngine] Continuous speech monitoring activated.")
+        print_info("Continuous speech voice activity detection (VAD) monitor active.")
 
         # Register robust exit cleanup handler
         atexit.register(self.shutdown)
@@ -240,8 +242,7 @@ class SpeechToTextEngine:
                 status = self.driver.find_element(By.ID, "status").text
                 if status.startswith("error:"):
                     error_msg = status.replace("error: ", "")
-                    print(f"[SpeechToTextEngine] Chrome STT Error: {error_msg}")
-                    self.set_assistant_status(f"Error: {error_msg}")
+                    print_error(f"Chrome STT Internal Error: {error_msg}")
                     return ""
                 
                 # Super-low CPU polling interval
@@ -258,7 +259,7 @@ class SpeechToTextEngine:
             pass
 
         if hasattr(self, 'driver') and self.driver:
-            print("[SpeechToTextEngine] Shutting down headless browser...")
+            print_system("Shutting down headless Chrome background session...")
             try:
                 self.driver.execute_script("stopContinuousRecognition();")
             except Exception:
@@ -346,15 +347,14 @@ if __name__ == "__main__":
     # Create the modern object-oriented engine
     engine = SpeechToTextEngine(silence_limit=0.8)
     
-    print("\n========== ONLINE WEB SPEECH ENGINE ==========")
-    print("Say something...")
-    print("Say 'exit application' to quit.\n")
+    import mtranslate as mt
+    print_banner("ONLINE WEB SPEECH ENGINE", "Say something to start speaking... (Type 'exit application' to quit)")
 
     try:
         while True:
             query = engine.listen_and_transcribe()
             if query:
-                print(f"Recognized: {query}")
+                print_success(f"Speech Recognized: [bold highlight]{query}[/bold highlight]")
                 if "exit application" in query.lower():
                     break
     except KeyboardInterrupt:

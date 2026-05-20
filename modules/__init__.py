@@ -10,7 +10,7 @@
 # - recognize_speech(): Legacy wrapper function for quick STT transcription.
 # ===========================================================================================================
 
-from .text_to_speech import TextToSpeechEngine
+from .text_to_speech import TextToSpeechEngine, DynamicVoiceEngine, KokoroOnnx
 from .speech_to_text import SpeechToTextEngine, recognize_speech
 from .utils import get_project_root, setup_logger
 

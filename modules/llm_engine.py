@@ -4,6 +4,13 @@ import requests
 import cohere
 from openai import OpenAI
 from dotenv import dotenv_values
+try:
+    from .utils import print_info, print_warning, print_error, print_system, print_success
+except ImportError:
+    try:
+        from modules.utils import print_info, print_warning, print_error, print_system, print_success
+    except ImportError:
+        from utils import print_info, print_warning, print_error, print_system, print_success
 
 
 class CentralizedLLMEngine:
@@ -22,7 +29,7 @@ class CentralizedLLMEngine:
             
             # MODE SELECTION MATRIX
             if force_online:
-                print("[Engine] FORCE_ONLINE is active. Bypassing local checks to run Cloud Mode.")
+                print_system("FORCE_ONLINE is active. Bypassing local checks to run Cloud Mode.")
                 self.is_online = True
                 self.is_local_active = False
             else:
@@ -33,15 +40,15 @@ class CentralizedLLMEngine:
             
             # CLIENT ALLOCATION
             if self.is_online:
-                print(f"[Engine] Booting Cloud APIs: Cohere ({self.cohere_model}) & Gemini ({self.gemini_model})")
+                print_info(f"Booting Cloud APIs: Cohere ({self.cohere_model}) & Gemini ({self.gemini_model})")
                 self.cohere_client = cohere.Client(api_key=self.env_vars.get("CohereAPIKey"))
                 self.online_chat_client = OpenAI(
                     api_key=self.env_vars.get("GEMINI_API_KEY"), 
                     base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
                 )
             else:
-                print(f"[Engine] Local Server detected at {self.local_base_url}. Running 100% Offline.")
-                print(f"[Engine] Using Local Chat: '{self.local_chat_model}' | Local DMM: '{self.local_decision_model}'")
+                print_info(f"Local Server detected at {self.local_base_url}. Running 100% Offline.")
+                print_info(f"Using Local Chat: '{self.local_chat_model}' | Local DMM: '{self.local_decision_model}'")
                 local_key = self.env_vars.get("LOCAL_API_KEY", "lm-studio")
                 self.local_client = OpenAI(base_url=self.local_base_url, api_key=local_key)
 
@@ -101,8 +108,15 @@ class CentralizedLLMEngine:
         try:
             if self.is_online:
                 # Cloud Mode: Stream from Cohere Command-R model
-                strem = self.cohere_client.chat_stream(model=self.cohere_model, preamble=self.dmm_preamble, message=prompt, chat_history=self.dmm_chat_history, prompt_truncation="OFF", temperature=0.7)
-                for event in strem:
+                stream = self.cohere_client.chat_stream(
+                    model=self.cohere_model,  # <-- Using ENV Variable
+                    preamble=self.dmm_preamble,
+                    message=prompt,
+                    chat_history=self.dmm_chat_history,
+                    prompt_truncation='OFF',
+                    temperature=0.7
+                )
+                for event in stream:
                     if event.event_type == "text-generation":
                         response_text += event.text
             else:
@@ -130,18 +144,18 @@ class CentralizedLLMEngine:
             
             if len(parsed_task) == 0:
                 if retries < 3:
-                    print(f"[Warning] Empty token response. Retrying DMM step #{retries + 1}...")
+                    print_warning(f"Empty token response. Retrying DMM step #{retries + 1}...")
                     return self.classify_intent(prompt=prompt, retries=retries + 1)
                 else:
                     return ["general " + prompt]
             return parsed_task
         except cohere.TooManyRequestsError:
-            print("[Error] Rate Limit Reached (10 calls/min). Cooling down for 10 seconds...")
+            print_error("Rate Limit Reached (10 calls/min). Cooling down for 10 seconds...")
             time.sleep(10)
             return self.classify_intent(prompt=prompt, retries=retries)
 
         except Exception as e:
-            print(f"[Error] An unexpected DMM exception occurred: {e}")
+            print_error(f"An unexpected DMM exception occurred: {e}")
             return ["general " + prompt]
 
     # 2. CHAT & SEARCH STREAMING CHUNKS GENERATOR

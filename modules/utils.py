@@ -2,11 +2,42 @@
 #                                   utils.py (Shared Helper Utilities)
 # ===========================================================================================================
 # This module implements core, reusable utility tools shared across the OPTIMUS application.
-# Includes standardized logging frameworks and central path resolution primitives.
+# Includes standardized logging frameworks, central path resolution, and a premium terminal UI.
 # ===========================================================================================================
-
 import os
+import sys
 import logging
+
+# Reconfigure stdout/stderr to support UTF-8 characters on Windows legacy consoles
+if sys.platform.startswith("win"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+    try:
+        sys.stderr.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
+
+from rich.console import Console
+from rich.theme import Theme
+from rich.panel import Panel
+from rich.text import Text
+
+# Premium, modern cyberpunk theme for the OPTIMUS terminal UI
+optimus_theme = Theme({
+    "info": "bold cyan",
+    "success": "bold green",
+    "warning": "bold yellow",
+    "error": "bold red",
+    "critical": "bold red blink",
+    "system": "bold magenta",
+    "highlight": "bold violet",
+    "text": "white",
+    "dim": "dim",
+})
+
+console = Console(theme=optimus_theme)
 
 
 def get_project_root():
@@ -47,3 +78,64 @@ def setup_logger(name, log_filename="optimus.log", level=logging.INFO):
         logger.addHandler(handler)
         
     return logger
+
+
+# ===========================================================================================================
+#                                  Premium Console Interface Helpers
+# ===========================================================================================================
+
+from rich.rule import Rule
+
+def print_banner(title: str, subtitle: str = None):
+    """
+    Renders an elegant, premium panel banner for application entrypoints.
+    """
+    banner_text = Text()
+    banner_text.append(title.upper(), style="bold white")
+    if subtitle:
+        banner_text.append(f"\n{subtitle}", style="dim cyan")
+    
+    panel = Panel(
+        banner_text,
+        border_style="magenta",
+        expand=False,
+        padding=(1, 4),
+        subtitle="[dim]OPTIMUS v1.0.0[/dim]",
+        subtitle_align="right"
+    )
+    console.print()
+    console.print(panel)
+    console.print()
+
+
+
+def print_section(title: str):
+    """
+    Renders a section separator with a neat horizontal layout.
+    """
+    console.print()
+    console.print(Rule(f"[bold white]{title.upper()}[/bold white]", style="dim magenta", align="left"))
+
+
+def print_info(msg: str):
+    console.print(f"[info][INFO][/info] [text]{msg}[/text]")
+
+
+def print_success(msg: str):
+    console.print(f"[success][SUCCESS][/success] [text]{msg}[/text]")
+
+
+def print_warning(msg: str):
+    console.print(f"[warning][WARNING][/warning] [text]{msg}[/text]")
+
+
+def print_error(msg: str):
+    console.print(f"[error][ERROR][/error] [text]{msg}[/text]")
+
+
+def print_critical(msg: str):
+    console.print(f"[critical][CRITICAL][/critical] [text]{msg}[/text]")
+
+
+def print_system(msg: str):
+    console.print(f"[system][SYSTEM][/system] [text]{msg}[/text]")
