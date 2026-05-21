@@ -1,6 +1,6 @@
-# Optimus-DA
+# Kayra-DA
 
-Optimus-DA is a high-performance, intelligent desktop assistant framework. It features a highly adaptable dual-mode **Centralized LLM Engine** paired with a professional **Offline Speech Matrix** (Speech-to-Text & Text-to-Speech). The engine is engineered to run seamlessly in both 100% offline local setups and hybrid cloud modes, ensuring absolute privacy, speed, and reliability.
+Kayra-DA is a high-performance, intelligent desktop assistant framework. It features a highly adaptable dual-mode **Centralized LLM Engine** paired with a professional **Offline Speech Matrix** (Speech-to-Text & Text-to-Speech). The engine is engineered to run seamlessly in both 100% offline local setups and hybrid cloud modes, ensuring absolute privacy, speed, and reliability.
 
 ---
 
@@ -21,7 +21,7 @@ Optimus-DA is a high-performance, intelligent desktop assistant framework. It fe
 ## Architectural Layout
 
 ```
-project-optimus/
+project-kayra/
 ├── modules/
 │   ├── __init__.py           # Package exports & legacy backwards-compatibility mappings
 │   ├── chatbot.py            # Conversational memory engine & persistent context layers

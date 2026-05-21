@@ -1,7 +1,7 @@
 # ===========================================================================================================
 #                                   utils.py (Shared Helper Utilities)
 # ===========================================================================================================
-# This module implements core, reusable utility tools shared across the OPTIMUS application.
+# This module implements core, reusable utility tools shared across the KAYRA application.
 # Includes standardized logging frameworks, central path resolution, and a premium terminal UI.
 # ===========================================================================================================
 import os
@@ -24,8 +24,8 @@ from rich.theme import Theme
 from rich.panel import Panel
 from rich.text import Text
 
-# Premium, modern cyberpunk theme for the OPTIMUS terminal UI
-optimus_theme = Theme({
+# Premium, modern cyberpunk theme for the KAYRA terminal UI
+kayra_theme = Theme({
     "info": "bold cyan",
     "success": "bold green",
     "warning": "bold yellow",
@@ -37,7 +37,7 @@ optimus_theme = Theme({
     "dim": "dim",
 })
 
-console = Console(theme=optimus_theme)
+console = Console(theme=kayra_theme)
 
 
 def get_project_root():
@@ -49,7 +49,7 @@ def get_project_root():
     return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-def setup_logger(name, log_filename="optimus.log", level=logging.INFO):
+def setup_logger(name, log_filename="kayra.log", level=logging.INFO):
     """
     Configures and returns a robust logger instance writing structured logs to the 'logs/' folder.
     
@@ -90,6 +90,17 @@ def print_banner(title: str, subtitle: str = None):
     """
     Renders an elegant, premium panel banner for application entrypoints.
     """
+    from dotenv import dotenv_values
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    env_path = os.path.join(root, ".env")
+    env_vars = dotenv_values(env_path) or {}
+    
+    assistant_name = env_vars.get("ASSISTANT_NAME", "").strip()
+    if not assistant_name:
+        assistant_name = "Kayra"
+        
+    title = title.replace("KAYRA", assistant_name.upper())
+
     banner_text = Text()
     banner_text.append(title.upper(), style="bold white")
     if subtitle:
@@ -100,7 +111,7 @@ def print_banner(title: str, subtitle: str = None):
         border_style="magenta",
         expand=False,
         padding=(1, 4),
-        subtitle="[dim]OPTIMUS v1.0.0[/dim]",
+        subtitle=f"[dim]{assistant_name.upper()} v1.0.0[/dim]",
         subtitle_align="right"
     )
     console.print()

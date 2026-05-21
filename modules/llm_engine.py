@@ -28,7 +28,8 @@ except ImportError:
 class CentralizedLLMEngine:
     def __init__(self):
             # Load environment variables
-            self.env_vars = dotenv_values(".env")
+            project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            self.env_vars = dotenv_values(os.path.join(project_root, ".env")) or {}
             
             # Pull model configurations from .env (with safe defaults)
             self.cohere_model = self.env_vars.get("COHERE_DECISION_MODEL", "command-r-plus-08-2024")
@@ -73,23 +74,50 @@ class CentralizedLLMEngine:
             
             self.dmm_preamble = """
                 You are a very accurate Decision-Making Model, which decides what kind of a query is given to you.
-                You will decide whether a query is a 'general' query, a 'realtime' query, or is asking to perform any task or automation like 'open facebook, instagram', 'can you write a application and open it in notepad'
-                *** Do not answer any query, just decide what kind of query is given to you. ***
+                You will decide whether a query is a 'general' query, a 'realtime' query, or is asking to perform any task or automation like 'open facebook, instagram', 'can you write a application and open it in notepad'.
+                
+                *** DO NOT ANSWER THE QUERY DIRECTLY. JUST DECIDE WHAT KIND OF QUERY IT IS AND FORMAT IT EXACTLY AS INSTRUCTED BELOW. ***
+                
+                =========================================
+                INTENT CLASSIFICATION & FORMATTING RULES
+                =========================================
+                
+                [1. KNOWLEDGE & CONVERSATION]
                 -> Respond with 'deep research (topic)' if the query explicitly requests to deeply analyze, research, do a deep dive, or write an exhaustive technical report on a specific topic. Example: if the query is 'do deep research on carbon batteries' respond with 'deep research carbon batteries'.
-                -> Respond with 'general ( query )' if a query can be answered by a llm model (conversational ai chatbot) and doesn't require any up to date information like if the query is 'who was akbar?' respond with 'general who was akbar?'.
-                -> Respond with 'realtime ( query )' if a query can not be answered by a llm model (because they don't have realtime data) and requires up to date information like if the query is 'who is indian prime minister' respond with 'realtime who is indian prime minister', if the query is 'what is today's news?' respond with 'realtime what is today's news?'.
-                -> Respond with 'open (application name or website name)' if a query is asking to open any application like 'open facebook'.
-                -> Respond with 'close (application name)' if a query is asking to close any application like 'close notepad'.
-                -> Respond with 'play (song name)' if a query is asking to play any song like 'play afsanay by ys'.
-                -> Respond with 'generate image (image prompt)' if a query is requesting to generate a image with given prompt like 'generate image of a lion'.
-                -> Respond with 'reminder (datetime with message)' if a query is requesting to set a reminder.
-                -> Respond with 'system (task name)' if a query is asking to mute, unmute, volume up, volume down, etc.
-                -> Respond with 'content (topic)' if a query is asking to write any type of content like application, codes, emails or anything else.
-                -> Respond with 'google search (topic)' if a query is asking to search a specific topic on google.
-                -> Respond with 'youtube search (topic)' if a query is asking to search a specific topic on youtube.
-                *** If the query is asking to perform multiple tasks like 'open facebook and close whatsapp' respond with 'open facebook, close whatsapp' ***
-                *** If the user is saying goodbye or wants to end the conversation like 'bye jarvis.' respond with 'exit'.***
-                *** Respond with 'general (query)' if you can't decide the kind of query or if a query is asking to perform a task which is not mentioned above. ***
+                
+                -> Respond with 'general (query)' if a query can be answered by an LLM model (conversational AI chatbot) and doesn't require any up-to-date information like if the query is 'who was akbar?' respond with 'general who was akbar?'.
+                   - Also use 'general (query)' if the query lacks a proper noun or is incomplete/ambiguous (e.g., uses pronouns like he, she, it, him, her). Examples: 'who is he?', "what's his networth?", 'tell me more about him.'.
+                   - Also use 'general (query)' if the query is asking about time, day, date, month, year, etc.
+                   
+                -> Respond with 'realtime (query)' if a query cannot be answered by an LLM model (because they don't have realtime data) and requires up-to-date information like if the query is 'who is indian prime minister' respond with 'realtime who is indian prime minister', if the query is 'what is today's news?' respond with 'realtime what is today's news?'.
+                   - Also use 'realtime (query)' if it asks about any specific individual or thing using proper nouns. Examples: 'who is akshay kumar', "tell me about facebook's recent update.", 'tell me news about coronavirus.', "what is today's headline?".
+
+                [2. SYSTEM & MEDIA AUTOMATION]
+                -> Respond with 'open (application name or website name)' if a query is asking to open any application like 'open facebook'. If asking to open multiple, respond with 'open 1st application name, open 2nd application name' and so on.
+                
+                -> Respond with 'close (application name)' if a query is asking to close any application like 'close notepad'. If asking to close multiple, respond with 'close 1st application name, close 2nd application name' and so on.
+                
+                -> Respond with 'play (song name)' if a query is asking to play any song like 'play afsanay by ys'. If asking to play multiple songs, respond with 'play 1st song name, play 2nd song name' and so on.
+                
+                -> Respond with 'generate image (image prompt)' if a query is requesting to generate an image with a given prompt like 'generate image of a lion'. If asking to generate multiple images, respond with 'generate image 1st image prompt, generate image 2nd image prompt' and so on.
+                
+                -> Respond with 'reminder (datetime with message)' if a query is requesting to set a reminder like 'set a reminder at 9:00pm on 25th june for my business meeting.' respond with 'reminder 9:00pm 25th june business meeting'.
+                
+                -> Respond with 'system (task name)' if a query is asking to mute, unmute, volume up, volume down, etc. If the query is asking to do multiple tasks, respond with 'system 1st task, system 2nd task', etc.
+                
+                [3. CONTENT GENERATION & SEARCH]
+                -> Respond with 'content (topic)' if a query is asking to write any type of content like application, codes, emails or anything else. If asking to write multiple types of content, respond with 'content 1st topic, content 2nd topic' and so on.
+                
+                -> Respond with 'google search (topic)' if a query is asking to search a specific topic on Google. If asking to search multiple topics, respond with 'google search 1st topic, google search 2nd topic' and so on.
+                
+                -> Respond with 'youtube search (topic)' if a query is asking to search a specific topic on YouTube. If asking to search multiple topics, respond with 'youtube search 1st topic, youtube search 2nd topic' and so on.
+                
+                =========================================
+                MULTI-TASKING & FALLBACK PROTOCOLS
+                =========================================
+                *** MULTI-TASKING: If the query is asking to perform multiple tasks like 'open facebook and close whatsapp' respond with 'open facebook, close whatsapp'
+                *** CONVERSATION END: If the user is saying goodbye or wants to end the conversation like 'bye jarvis.' respond with 'exit'.
+                *** FALLBACK: Respond with 'general (query)' if you can't decide the kind of query or if a query is asking to perform a task which is not mentioned above.
                 """
             
             self.dmm_chat_history = [
@@ -102,15 +130,39 @@ class CentralizedLLMEngine:
                 {"role": "User", "message": "run a deep research query on solid state hydrogen storage vectors"},
                 {"role": "Chatbot", "message": "deep research solid state hydrogen storage vectors"},
                 {"role": "User", "message": "chat with me."},
-                {"role": "Chatbot", "message": "general chat with me."}
+                {"role": "Chatbot", "message": "general chat with me."},
+                {"role": "User", "message": "who is he?"},
+                {"role": "Chatbot", "message": "general who is he?"},
+                {"role": "User", "message": "who is akshay kumar and what's his networth?"},
+                {"role": "Chatbot", "message": "realtime who is akshay kumar, general what's his networth?"},
+                {"role": "User", "message": "open chrome and open telegram"},
+                {"role": "Chatbot", "message": "open chrome, open telegram"},
+                {"role": "User", "message": "close notepad and close spotify"},
+                {"role": "Chatbot", "message": "close notepad, close spotify"},
+                {"role": "User", "message": "play afsanay by ys and play let her go"},
+                {"role": "Chatbot", "message": "play afsanay by ys, play let her go"},
+                {"role": "User", "message": "generate image of a lion and generate image of a cat"},
+                {"role": "Chatbot", "message": "generate image of a lion, generate image of a cat"},
+                {"role": "User", "message": "mute the sound and turn up the volume"},
+                {"role": "Chatbot", "message": "system mute, system volume up"},
+                {"role": "User", "message": "search weather on google and search java on google"},
+                {"role": "Chatbot", "message": "google search weather, google search java"},
+                {"role": "User", "message": "search tutorial on youtube and search cooking on youtube"},
+                {"role": "Chatbot", "message": "youtube search tutorial, youtube search cooking"},
+                {"role": "User", "message": "bye jarvis."},
+                {"role": "Chatbot", "message": "exit"}
             ]
 
     def get_identity_prompt(self):
         """
         Compiles the system persona instructions for the assistant based on env configuration.
         """
-        name = self.env_vars.get("ASSISTANT_NAME", "KYRA").strip()
-        gender = self.env_vars.get("ASSISTANT_GENDER", "Female").strip()
+        name = self.env_vars.get("ASSISTANT_NAME", "").strip()
+        if not name:
+            name = "Kayra"
+            gender = "Female"
+        else:
+            gender = self.env_vars.get("ASSISTANT_GENDER", "Female").strip()
         lang = self.env_vars.get("LANGUAGE", "English").strip()
         username = self.env_vars.get("USERNAME", "User").strip()
         

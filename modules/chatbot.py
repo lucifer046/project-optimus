@@ -41,8 +41,11 @@ except ImportError:
 # -------------------------------------------------------------------------------------------------------
 
 # Load environment configuration parameters from active profile
-env_vars = dotenv_values(".env")
-assistant_name = env_vars.get("ASSISTANT_NAME", "KYRA")
+root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env_vars = dotenv_values(os.path.join(root, ".env")) or {}
+assistant_name = env_vars.get("ASSISTANT_NAME", "").strip()
+if not assistant_name:
+    assistant_name = "Kayra"
 
 # Access the centralized mode-switching infrastructure broker (offline Kokoro / online cloud endpoints)
 engine = CentralizedLLMEngine()
@@ -226,7 +229,7 @@ def Chatbot(query):
 
 if __name__ == "__main__":
     # Boot the chatbot playground with the unified cyberpunk banner and config notifications
-    print_banner("OPTIMUS CHATBOT ENGINE", f"Interactive {assistant_name} Conversational Sandbox")
+    print_banner("KAYRA CHATBOT ENGINE", f"Interactive {assistant_name} Conversational Sandbox")
     print_success(f"Conversational Node Online. Saved Memory Index Items: {len(permanent_memory)}")
     
     while True:

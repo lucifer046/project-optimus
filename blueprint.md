@@ -1,9 +1,9 @@
-# OPTIMUS Engine Blueprint
+# KAYRA Engine Blueprint
 
 ## Project Structure
 
 ```text
-project-optimus/
+project-kayra/
 ├── .env                  # Active environment variables (API keys, models, system config)
 ├── .env.example          # Template for environment configuration
 ├── main.py               # Application entrypoint

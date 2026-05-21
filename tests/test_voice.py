@@ -9,7 +9,7 @@ from modules import TextToSpeechEngine
 from modules.utils import print_banner, print_info, print_error, print_system, print_success, console
 
 def main():
-    print_banner("OPTIMUS TTS PLAYGROUND", "Interactive Offline Voice Synthesis Sandbox")
+    print_banner("KAYRA TTS PLAYGROUND", "Interactive Offline Voice Synthesis Sandbox")
     
     try:
         with console.status("[bold cyan]Initializing offline premium Kokoro-ONNX voice engine...[/bold cyan]"):

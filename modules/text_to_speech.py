@@ -78,12 +78,20 @@ class DynamicVoiceEngine:
     Dynamic voice allocation engine configured via environment variables and supporting real-time streaming.
     """
     def __init__(self, model_filename="kokoro-v1.0.int8.onnx", voices_filename="voices-v1.0.bin"):
-        # Load environment specifications
-        env_vars = dotenv_values(".env") or {}
-        gender = env_vars.get("ASSISTANT_GENDER", "Female").strip().lower()
-        
         # Robust path resolution
         project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        # Load environment specifications
+        env_vars = dotenv_values(os.path.join(project_root, ".env")) or {}
+        
+        # Dynamic name and fallback gender mapping
+        self.assistant_name = env_vars.get("ASSISTANT_NAME", "").strip()
+        if not self.assistant_name:
+            self.assistant_name = "Kayra"
+            gender = "female"
+        else:
+            gender = env_vars.get("ASSISTANT_GENDER", "Female").strip().lower()
+        
         model_path = os.path.join(project_root, "models", model_filename)
         voices_path = os.path.join(project_root, "models", voices_filename)
 
@@ -124,7 +132,7 @@ class DynamicVoiceEngine:
         if not text.strip():
             return
             
-        console.print(f"\n[bold magenta][OPTIMUS Speaking]:[/] [italic text]{text}[/]")
+        console.print(f"\n[bold magenta][{self.assistant_name} Speaking]:[/] [italic text]{text}[/]")
             
         # Strip simple markdown characters out of text before raw audio synthesis processing
         clean_text = text.replace("*", "").replace("#", "").strip()
