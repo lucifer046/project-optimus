@@ -1,3 +1,12 @@
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                            test_voice.py                               │
+# │                     Offline Voice Synthesis Sandbox                    │
+# └────────────────────────────────────────────────────────────────────────┘
+"""
+test_voice.py - Interactive testing sandbox for offline Kokoro TTS.
+Enables real-time command-line voice synthesis testing.
+"""
+
 import os
 import sys
 

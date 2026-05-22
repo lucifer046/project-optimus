@@ -1,9 +1,12 @@
-# ===========================================================================================================
-#                                   utils.py (Shared Helper Utilities)
-# ===========================================================================================================
-# This module implements core, reusable utility tools shared across the KAYRA application.
-# Includes standardized logging frameworks, central path resolution, and a premium terminal UI.
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                                utils.py                                │
+# │                        Shared Helper Utilities                         │
+# └────────────────────────────────────────────────────────────────────────┘
+"""
+This module implements core, reusable utility tools shared across the KAYRA application.
+It includes standardized logging setups, central project path resolution,
+and premium terminal UI styling helpers utilizing the 'rich' library.
+"""
 import os
 import sys
 import logging
@@ -80,9 +83,9 @@ def setup_logger(name, log_filename="kayra.log", level=logging.INFO):
     return logger
 
 
-# ===========================================================================================================
-#                                  Premium Console Interface Helpers
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                   PREMIUM CONSOLE INTERFACE HELPERS                    │
+# └────────────────────────────────────────────────────────────────────────┘
 
 from rich.rule import Rule
 

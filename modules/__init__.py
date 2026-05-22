@@ -1,14 +1,10 @@
-# ===========================================================================================================
-#                                         modules Package Initialization
-# ===========================================================================================================
-# This file configures the import boundaries and initializes the project's core packaging system.
-# It cleanly exposes the primary components for both Speech-to-Text (STT) and Text-to-Speech (TTS).
-#
-# Professional API Boundaries:
-# - TextToSpeechEngine: Premium, local offline Kokoro TTS Engine.
-# - SpeechToTextEngine: Asynchronous continuous browser Speech-to-Text.
-# - recognize_speech(): Legacy wrapper function for quick STT transcription.
-# ===========================================================================================================
+"""
+modules Package Initialization
+
+This module configures the import boundaries for the KAYRA project's core package.
+It exposes the primary components for Speech-to-Text (STT) and Text-to-Speech (TTS)
+services to ensure clean integration across the assistant codebase.
+"""
 
 from .text_to_speech import TextToSpeechEngine, DynamicVoiceEngine, KokoroOnnx
 from .speech_to_text import SpeechToTextEngine, recognize_speech

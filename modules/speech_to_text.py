@@ -1,19 +1,13 @@
-# ===========================================================================================================
-#                                 speech_to_text.py (Continuous Background STT Engine)
-# ===========================================================================================================
-# This module implements an advanced, asynchronous Speech-to-Text (STT) system using the Web Speech API
-# running natively inside a persistent headless Chrome browser controlled via Selenium.
-#
-# Pipelined Queuing Design & Architecture:
-# 1. Permanent Mic Stream: The microphone audio stream inside Chrome remains open and active 100% of the time.
-# 2. In-Browser Queue: Sentences are split dynamically in JavaScript using Voice Activity Detection (VAD)
-#    silence gap thresholds, and then pushed into an in-memory queue (`window.speechQueue`).
-# 3. No Word Loss: Because Chrome never stops recording, you can continue speaking even while Python
-#    is busy translating, processing LLM queries, or playing back response audio.
-# 4. Zero Startup Delay: Subsequent calls to read the microphone stream execute in 0ms.
-# 5. Leak-Proof Lifecycle: Uses Python's 'atexit' with dynamic unregistration to guarantee headless Chrome process
-#    termination on script exit with zero connection tracebacks.
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                           speech_to_text.py                            │
+# │                  Continuous Background STT Engine                      │
+# └────────────────────────────────────────────────────────────────────────┘
+"""
+This module implements a continuous, background Speech-to-Text (STT) transcription system
+using the HTML5 Web Speech API running within a headless Selenium-controlled Chrome instance.
+It employs voice activity detection (VAD) to segment spoken audio into discrete sentences
+without losing words during processing delays.
+"""
 
 import os
 import time
@@ -34,9 +28,9 @@ except ImportError:
     except ImportError:
         from utils import print_info, print_warning, print_error, print_system, print_success, print_banner, console
 
-# ===========================================================================================================
-#                              In-Browser Web Speech API & VAD Silence Queuing HTML/JS
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │        IN-BROWSER WEB SPEECH API & VAD SILENCE QUEUING HTML/JS         │
+# └────────────────────────────────────────────────────────────────────────┘
 # We run this minimal web page inside our headless browser session.
 # It configures the Web Speech API (webkitSpeechRecognition) and implements real-time silence detection:
 # - Continually listens for speech input.
@@ -298,9 +292,9 @@ class SpeechToTextEngine:
             self.driver = None
 
 
-# ===========================================================================================================
-#                                         Formatting & Translation Utilities
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                  FORMATTING & TRANSLATION UTILITIES                    │
+# └────────────────────────────────────────────────────────────────────────┘
 
 def format_query(query):
     """
@@ -355,9 +349,9 @@ def translate_query(query):
     return english_query.capitalize()
 
 
-# ===========================================================================================================
-#                                  Backward Compatibility Mappings
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                 BACKWARD COMPATIBILITY CLASS ALIASES                   │
+# └────────────────────────────────────────────────────────────────────────┘
 OnlineSpeechEngine = SpeechToTextEngine
 SetAssistantStatus = SpeechToTextEngine.set_assistant_status
 QueryModifier = format_query
@@ -379,9 +373,9 @@ def recognize_speech():
 SpeechRecognition = recognize_speech
 
 
-# ===========================================================================================================
-#                                         Main Script Test Entrypoint
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                     MAIN SCRIPT TEST ENTRYPOINT                        │
+# └────────────────────────────────────────────────────────────────────────┘
 if __name__ == "__main__":
     # Instantiate the continuous STT engine session
     engine = SpeechToTextEngine(silence_limit=0.8)

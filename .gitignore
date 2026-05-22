@@ -82,3 +82,5 @@ data/*.json
 data/Files/*.data
 data/Files/*.json
 
+# Reports
+Reports

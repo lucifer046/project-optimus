@@ -1,15 +1,13 @@
-# ===========================================================================================================
-#                                 chatbot.py (Conversational Memory & Persistence Engine)
-# ===========================================================================================================
-# This module implements the main conversational memory structure for the assistant.
-#
-# Core Frameworks & Architectures:
-# 1. Dual-Tier Memory Hierarchy: Features a sliding short-term RAM window of the last 6 dialogues
-#    coupled with a persistent long-term storage database context baseline.
-# 2. Transactional Persistence: Employs an atomic writing strategy (via secondary backup mirrors) 
-#    to prevent history JSON file corruptions during sudden host shutdowns.
-# 3. Temporal Environmental Calibration: Injects real-time local date/time metrics dynamically.
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                               chatbot.py                               │
+# │               Conversational Memory & Persistence Engine               │
+# └────────────────────────────────────────────────────────────────────────┘
+"""
+This module implements the primary conversational memory architectures for the KAYRA assistant.
+It features a dual-tier memory system comprising:
+- A sliding short-term memory window representing the most recent interactions in the session.
+- A persistent long-term memory database backed by transactional, corruption-resistant storage.
+"""
 
 import os 
 import datetime
@@ -36,9 +34,9 @@ except ImportError:
         from utils import print_banner, print_info, print_success, print_warning, print_error, print_system, console
 
 
-# -------------------------------------------------------------------------------------------------------
-#                                         Configuration
-# -------------------------------------------------------------------------------------------------------
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                            CONFIGURATION                               │
+# └────────────────────────────────────────────────────────────────────────┘
 
 # Load environment configuration parameters from active profile
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -55,9 +53,9 @@ engine = CentralizedLLMEngine()
 DB_FILE = r"data\conversation.json"
 BACKUP_FILE = r"data\conversation_backup.json"
 
-# -------------------------------------------------------------------------------------------------------
-#                                         Memory Management Layer
-# -------------------------------------------------------------------------------------------------------
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                       MEMORY MANAGEMENT LAYER                          │
+# └────────────────────────────────────────────────────────────────────────┘
 def AnswerModifier(Answer):
     """
     Cleans structural whitespace anomalies out of the response string.
@@ -122,9 +120,9 @@ def save_memory(memory_list):
         return False
 
 
-# -------------------------------------------------------------------------------------------------------
-#                                         Memory Space Initialization
-# -------------------------------------------------------------------------------------------------------
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                     MEMORY SPACE INITIALIZATION                        │
+# └────────────────────────────────────────────────────────────────────────┘
 
 # Long-term data tables pulled from disk. Contains selectively saved/remembered dialogue frames.
 permanent_memory = load_memory()  
@@ -142,9 +140,9 @@ def RealTimeInformation():
     data += f"Day: {current_date_time.strftime('%A')}, Date: {current_date_time.strftime('%d %B %Y')}"
     return data
 
-# -------------------------------------------------------------------------------------------------------
-#                                         Main Interaction Pipeline
-# -------------------------------------------------------------------------------------------------------
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                       MAIN INTERACTION PIPELINE                        │
+# └────────────────────────────────────────────────────────────────────────┘
 
 def Chatbot(query):
     """
@@ -223,9 +221,9 @@ def Chatbot(query):
         print_error(f"Pipeline failure processing active transaction: {e}")
         return ""
 
-# -------------------------------------------------------------------------------------------------------
-#                                         Diagnostic Test Runtime Block
-# -------------------------------------------------------------------------------------------------------
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                     DIAGNOSTIC TEST RUNTIME BLOCK                      │
+# └────────────────────────────────────────────────────────────────────────┘
 
 if __name__ == "__main__":
     # Boot the chatbot playground with the unified cyberpunk banner and config notifications

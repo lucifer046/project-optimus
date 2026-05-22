@@ -1,15 +1,12 @@
-# ===========================================================================================================
-#                                 text_to_speech.py (Offline TTS Speech Synthesis Engine)
-# ===========================================================================================================
-# This module implements a premium, ultra-lightweight, 100% offline Text-to-Speech (TTS) system.
-#
-# Core Frameworks & Architectures:
-# 1. Kokoro-82M ONNX Model: An extremely fast and premium voice model running fully optimized on the CPU,
-#    saving 100% of your GPU VRAM for LLM inference.
-# 2. Dynamic vocal mapping: Selects appropriate voice style vectors based on environmental variables.
-# 3. Real-time Audio Streaming: Employs a background event loop thread pipeline to achieve low-latency
-#    continuous physical DAC audio streaming.
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                           text_to_speech.py                            │
+# │                 Offline TTS Speech Synthesis Engine                    │
+# └────────────────────────────────────────────────────────────────────────┘
+"""
+This module implements a lightweight, 100% offline Text-to-Speech (TTS) system.
+It utilizes the Kokoro-82M ONNX voice model running optimized on the CPU,
+with dynamic voice style mapping and real-time chunked audio streaming.
+"""
 
 import os
 import sys
@@ -117,9 +114,7 @@ class DynamicVoiceEngine:
         self.onnx = KokoroOnnx(model_path, voices_path)
         self.sample_rate = 24000
         
-        # ---------------------------------------------------------
-        # Dynamic Vocal Allocation Mapping
-        # ---------------------------------------------------------
+        # => Dynamic vocal allocation style mapping
         if gender == "male":
             self.voice = "am_adam"  # High-quality North American Male style vector
             print_info("Vocal Cord Configuration: Male (am_adam)")
@@ -157,17 +152,17 @@ class TextToSpeechEngine(DynamicVoiceEngine):
         super().__init__(model_filename=model_filename, voices_filename=voices_filename)
 
 
-# ===========================================================================================================
-#                                  Backward Compatibility Class Aliases
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                 BACKWARD COMPATIBILITY CLASS ALIASES                   │
+# └────────────────────────────────────────────────────────────────────────┘
 LiveOfflineTTS = TextToSpeechEngine
 LiveOffileTTS = TextToSpeechEngine
 OfflineTTS = TextToSpeechEngine
 
 
-# ===========================================================================================================
-#                                         Main Script Test Entrypoint
-# ===========================================================================================================
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                     MAIN SCRIPT TEST ENTRYPOINT                        │
+# └────────────────────────────────────────────────────────────────────────┘
 if __name__ == "__main__":
     # Run a test speech synthesis sequence using the modern dynamic engine
     tts = DynamicVoiceEngine()

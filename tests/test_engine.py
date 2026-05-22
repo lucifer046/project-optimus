@@ -1,3 +1,12 @@
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                            test_engine.py                              │
+# │                     LLM Engine Integration Test Suite                  │
+# └────────────────────────────────────────────────────────────────────────┘
+"""
+test_engine.py - Integration tests for the Centralized LLM Engine.
+Verifies DMM intent classification and real-time streaming token generation.
+"""
+
 import os
 import sys
 import time
