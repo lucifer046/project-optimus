@@ -79,7 +79,18 @@ class CentralizedLLMEngine:
         self.funcs = [
             "exit", "general", "realtime", "open", "close", "play",
             "generate image", "system", "content", "google search", 
-            "youtube search", "reminder", "deep research"
+            "youtube search", "reminder", "deep research",
+            "screenshot", "take screenshot", "copy", "paste", "copy text",
+            "snap left", "snap right", "minimize all", "show desktop",
+            "switch window", "alt tab", "task view", "maximize", "minimize",
+            "close window", "action center", "emoji",
+            "pause", "resume", "next track", "previous track", "stop media",
+            "battery", "cpu", "ram", "disk", "uptime", "ip address",
+            "timer", "set timer",
+            "undo", "redo", "select all", "save file", "find",
+            "new tab", "close tab", "refresh", "fullscreen",
+            "zoom in", "zoom out", "task manager", "run dialog",
+            "wifi", "write", "type"
         ]
         
         # Preamble instructions to restrict DMM responses to structured task labels
@@ -114,7 +125,12 @@ class CentralizedLLMEngine:
             
             -> Respond with 'reminder (datetime with message)' if a query is requesting to set a reminder like 'set a reminder at 9:00pm on 25th june for my business meeting.' respond with 'reminder 9:00pm 25th june business meeting'.
             
-            -> Respond with 'system (task name)' if a query is asking to mute, unmute, volume up, volume down, etc. If the query is asking to do multiple tasks, respond with 'system 1st task, system 2nd task', etc.
+            -> Respond with 'system (task name)' if a query is asking to mute, unmute, volume up, volume down, increase/decrease brightness, lock the system, shutdown, restart, or sleep. Use the exact user phrasing for the task. Examples:
+               - 'mute the sound' -> 'system mute'
+               - 'increase volume by 20%' -> 'system increase volume by 20%'
+               - 'set brightness to 50%' -> 'system brightness 50%'
+               - 'lock my pc' -> 'system lock'
+               - 'shutdown the computer' -> 'system shutdown'
             
             [3. CONTENT GENERATION & SEARCH]
             -> Respond with 'content (topic)' if a query is asking to write any type of content like application, codes, emails or anything else. If asking to write multiple types of content, respond with 'content 1st topic, content 2nd topic' and so on.
@@ -122,6 +138,58 @@ class CentralizedLLMEngine:
             -> Respond with 'google search (topic)' if a query is asking to search a specific topic on Google. If asking to search multiple topics, respond with 'google search 1st topic, google search 2nd topic' and so on.
             
             -> Respond with 'youtube search (topic)' if a query is asking to search a specific topic on YouTube. If asking to search multiple topics, respond with 'youtube search 1st topic, youtube search 2nd topic' and so on.
+            
+            [4. DESKTOP CONTROLS & UTILITIES]
+            -> Respond with 'take screenshot' if the user asks to capture the screen, take a screenshot, or snap the screen.
+            
+            -> Respond with 'copy' if the user asks to copy something. Respond with 'paste' if the user asks to paste. Respond with 'copy text (message)' if the user wants to copy specific text to clipboard.
+            
+            -> Respond with 'write (text)' or 'type (text)' if the user asks to type or write text at the current cursor position. Example: 'type hello world' -> 'write hello world'.
+            
+            -> For window management, respond EXACTLY with the matching command:
+               - 'minimize all windows' or 'show desktop' -> 'minimize all' or 'show desktop'
+               - 'snap this to the left' -> 'snap left'
+               - 'snap to right' -> 'snap right'
+               - 'switch window' or 'alt tab' -> 'switch window'
+               - 'maximize this window' -> 'maximize'
+               - 'minimize this window' -> 'minimize'
+               - 'open task view' -> 'task view'
+               - 'open emoji picker' -> 'emoji'
+            
+            -> For media playback, respond EXACTLY with:
+               - 'pause the music' or 'play music' -> 'pause'
+               - 'next song' or 'skip track' -> 'next track'
+               - 'previous song' or 'go back' -> 'previous track'
+               - 'stop the music' -> 'stop media'
+            
+            -> For system info queries, respond EXACTLY with:
+               - 'check battery' or 'battery status' -> 'battery'
+               - 'how much ram' or 'memory usage' -> 'ram'
+               - 'cpu info' or 'processor info' -> 'cpu'
+               - 'disk space' or 'storage info' -> 'disk'
+               - 'system uptime' -> 'uptime'
+               - 'what is my ip' or 'network info' -> 'ip address'
+            
+            -> Respond with 'set timer (duration)' if the user asks to set a timer or countdown. Example: 'set a timer for 5 minutes' -> 'set timer 5 minutes'.
+            
+            -> For keyboard shortcuts, respond EXACTLY with:
+               - 'undo that' -> 'undo'
+               - 'redo that' -> 'redo'
+               - 'select all' -> 'select all'
+               - 'save the file' -> 'save file'
+               - 'find something' or 'search in page' -> 'find'
+               - 'open a new tab' -> 'new tab'
+               - 'close this tab' -> 'close tab'
+               - 'refresh the page' -> 'refresh'
+               - 'go fullscreen' -> 'fullscreen'
+               - 'zoom in' -> 'zoom in'
+               - 'zoom out' -> 'zoom out'
+               - 'open task manager' -> 'task manager'
+               - 'open run dialog' -> 'run dialog'
+            
+            -> For wifi control, respond with:
+               - 'turn off wifi' or 'disable wifi' -> 'wifi off'
+               - 'turn on wifi' or 'enable wifi' -> 'wifi on'
             
             =========================================
             MULTI-TASKING & FALLBACK PROTOCOLS
@@ -157,10 +225,54 @@ class CentralizedLLMEngine:
             {"role": "Chatbot", "message": "generate image of a lion, generate image of a cat"},
             {"role": "User", "message": "mute the sound and turn up the volume"},
             {"role": "Chatbot", "message": "system mute, system volume up"},
+            {"role": "User", "message": "increase volume by 30 percent"},
+            {"role": "Chatbot", "message": "system increase volume by 30%"},
+            {"role": "User", "message": "set brightness to 50"},
+            {"role": "Chatbot", "message": "system brightness 50%"},
             {"role": "User", "message": "search weather on google and search java on google"},
             {"role": "Chatbot", "message": "google search weather, google search java"},
             {"role": "User", "message": "search tutorial on youtube and search cooking on youtube"},
             {"role": "Chatbot", "message": "youtube search tutorial, youtube search cooking"},
+            {"role": "User", "message": "take a screenshot"},
+            {"role": "Chatbot", "message": "take screenshot"},
+            {"role": "User", "message": "check battery status and show me ram usage"},
+            {"role": "Chatbot", "message": "battery, ram"},
+            {"role": "User", "message": "set a timer for 5 minutes"},
+            {"role": "Chatbot", "message": "set timer 5 minutes"},
+            {"role": "User", "message": "pause the music"},
+            {"role": "Chatbot", "message": "pause"},
+            {"role": "User", "message": "skip to next song"},
+            {"role": "Chatbot", "message": "next track"},
+            {"role": "User", "message": "minimize all windows and take a screenshot"},
+            {"role": "Chatbot", "message": "minimize all, take screenshot"},
+            {"role": "User", "message": "snap this window to the left"},
+            {"role": "Chatbot", "message": "snap left"},
+            {"role": "User", "message": "undo that and save the file"},
+            {"role": "Chatbot", "message": "undo, save file"},
+            {"role": "User", "message": "turn off the wifi"},
+            {"role": "Chatbot", "message": "wifi off"},
+            {"role": "User", "message": "type hello world in the search bar"},
+            {"role": "Chatbot", "message": "write hello world"},
+            {"role": "User", "message": "open task manager"},
+            {"role": "Chatbot", "message": "task manager"},
+            {"role": "User", "message": "what is my ip address and check cpu info"},
+            {"role": "Chatbot", "message": "ip address, cpu"},
+            {"role": "User", "message": "lock the computer and turn off wifi"},
+            {"role": "Chatbot", "message": "system lock, wifi off"},
+            {"role": "User", "message": "copy that and paste it"},
+            {"role": "Chatbot", "message": "copy, paste"},
+            {"role": "User", "message": "open github.com and open claude.ai"},
+            {"role": "Chatbot", "message": "open github.com, open claude.ai"},
+            {"role": "User", "message": "how much disk space do I have"},
+            {"role": "Chatbot", "message": "disk"},
+            {"role": "User", "message": "show me the uptime"},
+            {"role": "Chatbot", "message": "uptime"},
+            {"role": "User", "message": "open the emoji picker"},
+            {"role": "Chatbot", "message": "emoji"},
+            {"role": "User", "message": "refresh this page"},
+            {"role": "Chatbot", "message": "refresh"},
+            {"role": "User", "message": "zoom in a bit"},
+            {"role": "Chatbot", "message": "zoom in"},
             {"role": "User", "message": "bye jarvis."},
             {"role": "Chatbot", "message": "exit"}
         ]

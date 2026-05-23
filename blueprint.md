@@ -26,8 +26,8 @@ project-kayra/
     ├── real_time_search.py # DuckDuckGo unauthenticated search engine & RAG
     ├── deep_research.py  # Autonomous multi-step topic decomposition and whitepaper writer
     ├── speech_to_text.py # Continuous Web Speech API via headless Chrome
-    └── text_to_speech.py # Offline Kokoro-ONNX Real-Time Audio Streaming
-
+    ├── text_to_speech.py # Offline Kokoro-ONNX Real-Time Audio Streaming
+    └── automation_windows.py # High-utility hardware input injection & OS/browser automation
 ```
 
 ## Core Modules Logic & Functions
@@ -91,9 +91,9 @@ project-kayra/
 ### `modules/llm_engine.py`
 **Purpose:** The central orchestrator for Local/Cloud AI models. Acts as the primary "brain" by executing a two-layer architecture: an Intent Classifier (DMM) and a live Chat Stream.
 * **Class `CentralizedLLMEngine`:**
-  * `__init__()`: Loads environmental configs (`.env`), sets up `OpenAI` client (for local LM Studio/Ollama) and `Cohere`/`Gemini` API clients (for cloud fallback).
+  * `__init__()`: Loads environmental configs (`.env`), sets up `OpenAI` client (for local LM Studio/Ollama) and `Cohere`/`Gemini` API clients (for cloud fallback). Initializes the expanded `self.funcs` whitelist and system preamble prompt parameters for the intent parser.
   * `is_online()`: Checks model reachability and network connection to determine execution mode.
-  * `classify_intent(query)`: The Decision Making Model (DMM). Analyzes raw input via `cohere` or local APIs to categorize intent (e.g., realtime, deep research, general).
+  * `classify_intent(query)`: The Decision Making Model (DMM). Analyzes raw input via `cohere` or local APIs to categorize intent into 50+ granular automation shortcuts, hotkey triggers, or conversational routes, utilizing deep few-shot examples.
   * `generate_chat_stream(messages)`: Generates continuous conversational AI replies and streams them token-by-token. 
 
 ### `modules/chatbot.py`
@@ -111,10 +111,13 @@ project-kayra/
 * `RealTimeSearchEngine(query)`: The central orchestrator for the RAG search pipeline. Scrapes the web, builds an augmented user prompt structure, handles sliding short-term and persistent memory contexts, streams answers live to terminal, and persists triggered memory frames.
 
 ### `modules/deep_research.py`
-**Purpose:** Autonomous multi-phase technical research agent. Decomposes broad central themes into focused research vectors, crawls search indexes to collect broad pools of contextual data, and synthesizes exhaustive, professional Markdown reports.
-* `generate_sub_queries(topic)`: Decomposes a broad central theme into a structured list of distinct, specific search queries using the LLM.
-* `bulk_scrape(query)`: Scrapes up to 5 comprehensive text snippets per search query to build a rich raw context repository.
-* `DeepResearchEngine(topic)`: The master orchestration workflow. Generates query sub-vectors, pulls bulk scraper context, prompts the LLM to write a comprehensive, highly-structured technical report (Executive Summary, Deep Dive categories, Conclusion), streams the document live to terminal, and writes the final markdown file with a clean timestamp to the `Reports/` folder.
+**Purpose:** A publication-grade 6-stage autonomous research pipeline inspired by Gemini/ChatGPT Deep Research. Builds a comprehensive knowledge model by dynamically mapping research queries, crawling content links, resolving telemetry gaps, and synthesizing cohesive technical dossiers.
+* `generate_research_plan(topic)`: Decomposes a broad central theme into a structured multi-angle query plan containing 5 focus angles and 10 targeted search queries.
+* `search_web(query, max_results)`: Scrapes live search vectors and index pools via DuckDuckGo search clients.
+* `deep_scrape_top_pages(url_list, max_pages)`: Scrapes and cleans full HTML web page articles via BeautifulSoup, stripping structural boilerplates, tracking domains, and compiling pure text.
+* `generate_followup_queries(topic, context)`: Analyses accumulated context blocks to identify knowledge gaps, generating 3 targeted follow-up query sweeps.
+* `synthesize_report(topic, context)`: Prompts the LLM to structure, draft, and format a professional, 2000+ word technical whitepaper complete with executive summaries, theme divisions, findings, limitations, future outlooks, and citation references.
+* `DeepResearchEngine(topic)`: The master 6-stage orchestrator driving plan creation, broad crawling, deep extraction, gap analysis, gap-filling scrape, and document synthesis while outputting detailed character, domain, and time performance telemetry.
 
 ### `modules/speech_to_text.py`
 **Purpose:** A flawless background STT engine. Unlike normal Python scripts that lock up the mic, this spins up an invisible headless Chrome browser utilizing the native Web Speech API. 
@@ -136,7 +139,23 @@ project-kayra/
   * `__init__()`: Autodetects `ASSISTANT_GENDER` from `.env` to map to premium voices (`am_adam` or `af_bella`). Performs highly robust fallback path resolutions to locate `kokoro.onnx` and `voices.bin`.
   * `speak(text)`: Consumes the `stream()` audio arrays chunk by chunk, feeding them instantly to `sounddevice` for zero-latency speaker playback.
 
+### `modules/automation_windows.py`
+**Purpose:** High-utility hardware input injection, system telemetry aggregator, and OS/browser orchestration module. Simulates hardware keyboard presses, adjusts monitor panels, interacts with active window contexts, and acts as the physical "hands" of the assistant.
+* `global_desktop_type(text)`: Inject physical low-level key strings at the current active mouse cursor using fast clipboard and pyautogui fallbacks.
+* `OpenApp(app)`: Fuzzy matches local executables, redirects official web targets safely via DuckDuckGo `!ducky` bang vectors, and natively opens URLs/domains (e.g. `github.com`) directly inside the default browser. Handles space, comma, and 'and' separation for simultaneous multi-tab launches.
+* `CloseApp(app)`: Win32 process tracker. Iterates open visible windows to locate target strings, focuses, and destroys standalone windows. Bypasses Windows `ForegroundLockTimeout` rules using a dummy ALT key hook to close browser tabs using standard hardware signals (`ctrl+w`) without un-maximizing or resizing windows. Falls back to AppOpener and aggressive process termination.
+* `ExecuteCommand(command)`: Processes hardware system commands: volume mute, absolute calibration volume level configurations, WMI-based brightness modifications, sleep/suspend, computer restart, lock workstation, and shutdown.
+* `TakeScreenshot(name)`: Snaps full desktop screenshot, resolving folder conflicts dynamically to support OneDrive-synced Desktop paths.
+* `ClipboardCopy()`, `ClipboardPaste()`, `ClipboardCopyText(text)`: Performs simulated clipboard injections and direct string copies without keyboard typing simulation.
+* `WindowManage(action)`: Orchestrates screen split controls (snap left/right), active window minimize/maximize operations, Alt+Tab focus swaps, Windows Action Center panels, and emoji picker hooks.
+* `MediaControl(action)`: Dispatches hardware media key triggers (play, pause, next track, skip, back, stop) to control media players globally.
+* `SystemInfo(query)`: Telemetry portal pulling real-time WMI diagnostic statistics for battery %, power states, RAM usage, local storage allocations, CPU load, and system boot uptime.
+* `SetTimer(command)`: Starts asynchronous background countdown thread that fires a native Windows OS notification toast when complete.
+* `HotkeyShortcut(action)`: Translates natural language into 18 common keyboard shortcut injections (undo, redo, save, zoom, run dialog, task manager).
+* `ToggleWifi(action)`: Enables/disables local Wi-Fi adapters using clean PowerShell interface controls.
+
 ### `tests/test_engine.py` & `tests/test_voice.py`
 **Purpose:** Sandbox integration scripts designed with the new cyberpunk `rich` terminal interfaces. 
 * `test_engine.py`: Simulates user prompts, measures Intent Classification execution times, and displays live streaming token generation.
 * `test_voice.py`: An interactive REPL playground allowing the developer to type inputs to test the TTS engine's latency, dynamic voice mapping, and pronunciation instantly.
+

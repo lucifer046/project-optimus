@@ -165,39 +165,67 @@ def OpenApp(app):
     app_target = app.lower().strip()
     print_info(f"Targeting system execution paths for: '{app_target}'")
 
+    # Detect if the input is a URL or domain name (e.g. github.com, https://example.org, claude.ai)
+    import re
+    domain_extensions = r'\.(com|org|net|in|io|ai|co|dev|me|xyz|gov|edu|info|app|tech|site|online|live|pro|cc|tv|gg|us|uk|eu)(/|$|\s)'
+    is_url = app_target.startswith("http://") or app_target.startswith("https://")
+    is_domain = bool(re.search(domain_extensions, app_target))
+
+    if is_url or is_domain:
+        # Parse multiple URLs/domains if separated by spaces, commas, or 'and'
+        if "," in app_target or " and " in app_target:
+            targets = [t.strip() for t in re.split(r',|\band\b', app_target) if t.strip()]
+        else:
+            targets = app_target.split()
+
+        for target in targets:
+            url = target
+            if not url.startswith("http"):
+                url = f"https://{url}"
+            webbrowser.open(url)
+            print_success(f"Opened URL in default browser: {url}")
+            time.sleep(0.3)
+        return True
+
     if app_target in ["file explorer", "file manager", "my computer", "this pc", "explorer"]:
         os.startfile("explorer")
         return True
 
     try:
-        appopen(app_target, match_closest=True, output=False, throw_error=True)
+        _old_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+        try:
+            appopen(app_target, match_closest=True, output=True, throw_error=True)
+        finally:
+            sys.stdout.close()
+            sys.stdout = _old_stdout
         return True
     except:
         print_warning(f"Local app shortcut not resolved. Running fast web scraping link extraction...")
-        try:
-            search_url = f"https://www.google.com/search?q={app_target}"
-            headers = {"User-Agent": USER_AGENT}
-            response = requests.get(search_url, headers=headers, timeout=5)
-            
-            if response.status_code == 200:
-                soup = BeautifulSoup(response.text, "html.parser")
-                link_node = soup.find("a", {"jsname": "UWckNb"})
-                resolved_url = link_node.get("href") if link_node else f"https://www.google.com/search?q={app_target}"
+        import re
+        
+        # Parse targets by commas or 'and'. If none, split by space to support multi-site space-separated lists
+        if "," in app_target or " and " in app_target:
+            targets = [t.strip() for t in re.split(r',|\band\b', app_target) if t.strip()]
+        else:
+            targets = app_target.split()
+
+        for target in targets:
+            try:
+                # Use DuckDuckGo's !ducky bang ("I'm Feeling Lucky") to automatically and instantly
+                # redirect the user's browser to the primary official website (bypassing all scraping CAPTCHAs)
+                import urllib.parse
+                safe_target = urllib.parse.quote(target)
+                resolved_url = f"https://duckduckgo.com/?q=!ducky+{safe_target}"
                 
-                # Enforce native Chrome execution pathways if present on Windows
-                chrome_paths = [
-                    r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-                    r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
-                ]
-                for path in chrome_paths:
-                    if os.path.exists(path):
-                        subprocess.run([path, resolved_url])
-                        return True
+                # Route exclusively through the system's natively configured default browser
                 webbrowser.open(resolved_url)
-                return True
-        except Exception as web_err:
-            print_error(f"Web fallback routing layer failed: {web_err}")
-            return False
+                
+                # Small delay to prevent browser tab rendering bottlenecks
+                time.sleep(0.3)
+            except Exception as web_err:
+                print_error(f"Web fallback routing layer failed for '{target}': {web_err}")
+        return True
 
 def CloseApp(app):
     """
@@ -215,6 +243,7 @@ def CloseApp(app):
         subprocess.run("taskkill /f /im SystemSettings.exe", shell=True, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL)
         return True
 
+    # 1. First Priority: Search open windows by title to catch browser tabs or active visible apps
     try:
         from ctypes import windll, create_unicode_buffer
         WM_CLOSE = 0x0010
@@ -236,12 +265,21 @@ def CloseApp(app):
             for hwnd, title in target_hwnds:
                 is_browser = any(b in title.lower() for b in ["chrome", "edge", "firefox", "brave", "opera"])
                 # Safe close tabs if browser window context maps directly
-                if is_browser and not any(ext in app_target for ext in ["chrome", "edge", "browser"]):
+                if is_browser and not any(ext in app_target for ext in ["chrome", "edge", "browser", "firefox", "brave"]):
                     print_warning(f"Isolating active browser window tab focus hook: '{title[:20]}'")
-                    windll.user32.ShowWindow(hwnd, 9) # Restore window state
+                    
+                    # Bypass Windows ForegroundLockTimeout restriction by injecting a dummy ALT keystroke
+                    windll.user32.keybd_event(0x12, 0, 0, 0) # ALT down
+                    windll.user32.keybd_event(0x12, 0, 2, 0) # ALT up
+                    
+                    # Only restore the window if it is currently minimized to the taskbar
+                    if windll.user32.IsIconic(hwnd):
+                        windll.user32.ShowWindow(hwnd, 9) # Restore window state
+                        
                     windll.user32.SetForegroundWindow(hwnd)
                     time.sleep(0.3)
                     keyboard.press_and_release("ctrl+w")
+                    print_success(f"Closed browser tab targeting: '{app_target}'")
                 else:
                     print_info(f"Sending hardware-level close interrupt signals to: '{title[:20]}'")
                     windll.user32.PostMessageW(hwnd, WM_CLOSE, 0, 0)
@@ -249,7 +287,28 @@ def CloseApp(app):
     except Exception as e:
         print_error(f"Advanced Win32 title callback tracing crashed: {e}")
 
-    # Aggressive fallback logic matrix for non-critical targets
+    # 2. Try AppOpener to close known local apps cleanly if no active windows matched
+    from AppOpener import close as appclose
+    try:
+        import sys, os
+        _old_stdout = sys.stdout
+        sys.stdout = open(os.devnull, 'w')
+        try:
+            appclose(app_target, match_closest=True, output=True, throw_error=True)
+            success = True
+        except:
+            success = False
+        finally:
+            sys.stdout.close()
+            sys.stdout = _old_stdout
+        
+        if success:
+            print_success(f"Successfully closed application: '{app_target}'")
+            return True
+    except:
+        pass
+
+    # 3. Aggressive taskkill fallback logic matrix for non-critical targets
     critical_blocks = ["explorer", "winlogon", "services", "svchost", "python", "py"]
     if app_target in critical_blocks:
         return False
@@ -270,16 +329,56 @@ def _set_brightness(target):
     except Exception as e:
         print_error(f"Direct monitor brightness adjustment failed: {e}")
 
+def _adjust_volume(delta):
+    """Adjusts system volume by a relative percentage by simulating hardware key presses."""
+    try:
+        steps = abs(delta) // 2
+        key = "volume up" if delta > 0 else "volume down"
+        for _ in range(steps):
+            keyboard.press_and_release(key)
+            time.sleep(0.01)
+        print_success(f"System volume {'increased' if delta > 0 else 'decreased'} by {abs(delta)}%")
+    except Exception as e:
+        print_error(f"Hardware volume adjustment failed: {e}")
+
+def _set_volume(target):
+    """Sets system volume to an absolute percentage using a zero-out calibration approach."""
+    try:
+        target = max(0, min(100, target))
+        for _ in range(50):
+            keyboard.press_and_release("volume down")
+        steps = target // 2
+        for _ in range(steps):
+            keyboard.press_and_release("volume up")
+            time.sleep(0.01)
+        print_success(f"System volume calibrated and set directly to {target}%")
+    except Exception as e:
+        print_error(f"Absolute hardware volume configuration failed: {e}")
+
 def ExecuteCommand(command):
     """Hardware command registry processing matrix."""
     cmd = command.lower().strip()
+    import re
     
     if "mute" in cmd:
         keyboard.press_and_release("volume mute")
-    elif "volume up" in cmd or "increase volume" in cmd or "volume increase" in cmd or "raise volume" in cmd:
-        for _ in range(5): keyboard.press_and_release("volume up")
-    elif "volume down" in cmd or "decrease volume" in cmd or "volume decrease" in cmd or "lower volume" in cmd:
-        for _ in range(5): keyboard.press_and_release("volume down")
+    elif "volume" in cmd:
+        match = re.search(r'(\d+)', cmd)
+        if match:
+            target_val = int(match.group(1))
+            if "by" in cmd:
+                if "decrease" in cmd or "down" in cmd or "lower" in cmd:
+                    _adjust_volume(-target_val)
+                else:
+                    _adjust_volume(target_val)
+            else:
+                _set_volume(target_val)
+        elif "up" in cmd or "increase" in cmd or "raise" in cmd:
+            _adjust_volume(10)
+        elif "down" in cmd or "decrease" in cmd or "lower" in cmd:
+            _adjust_volume(-10)
+        else:
+            print_warning(f"Failed to match volume operation parameters: {cmd}")
     elif "lock" in cmd:
         ctypes.windll.user32.LockWorkStation()
     elif "sleep" in cmd or "turn off screen" in cmd:
@@ -289,11 +388,16 @@ def ExecuteCommand(command):
     elif "restart" in cmd:
         os.system("shutdown /r /t 0")
     elif "brightness" in cmd:
-        import re
         match = re.search(r'(\d+)', cmd)
         if match:
             target_val = int(match.group(1))
-            _set_brightness(target_val)
+            if "by" in cmd:
+                if "decrease" in cmd or "down" in cmd or "lower" in cmd:
+                    _adjust_brightness(-target_val)
+                else:
+                    _adjust_brightness(target_val)
+            else:
+                _set_brightness(target_val)
         elif "up" in cmd or "increase" in cmd or "raise" in cmd:
             _adjust_brightness(15)
         elif "down" in cmd or "decrease" in cmd or "lower" in cmd:
@@ -316,6 +420,343 @@ def _adjust_brightness(delta):
         print_error(f"Monitor instrumentation brightness adjustments failed: {e}")
 
 # ┌────────────────────────────────────────────────────────────────────────┐
+# │                     SCREENSHOT CAPTURE ENGINE                           │
+# └────────────────────────────────────────────────────────────────────────┘
+
+def TakeScreenshot(name=None):
+    """Captures the entire screen and saves it to the user's Desktop folder."""
+    try:
+        # Dynamically resolve the real Desktop path (supports OneDrive-synced desktops)
+        home = os.path.expanduser("~")
+        desktop_candidates = [
+            os.path.join(home, "OneDrive", "Desktop"),
+            os.path.join(home, "Desktop"),
+            os.path.join(home, "Pictures"),  # Final fallback
+        ]
+        desktop = next((p for p in desktop_candidates if os.path.exists(p)), home)
+
+        filename = name or f"KAYRA_Screenshot_{int(time.time())}.png"
+        if not filename.endswith(".png"):
+            filename += ".png"
+        filepath = os.path.join(desktop, filename)
+        screenshot = pyautogui.screenshot()
+        screenshot.save(filepath)
+        print_success(f"Screen capture saved: '{filepath}'")
+        return True
+    except Exception as e:
+        print_error(f"Screenshot capture pipeline failed: {e}")
+        return False
+
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                      CLIPBOARD OPERATIONS                               │
+# └────────────────────────────────────────────────────────────────────────┘
+
+def ClipboardCopy():
+    """Simulates a Ctrl+C hardware keystroke to copy the current selection."""
+    keyboard.press_and_release("ctrl+c")
+    print_success("Clipboard copy operation dispatched.")
+    return True
+
+def ClipboardPaste():
+    """Simulates a Ctrl+V hardware keystroke to paste clipboard contents."""
+    keyboard.press_and_release("ctrl+v")
+    print_success("Clipboard paste operation dispatched.")
+    return True
+
+def ClipboardCopyText(text):
+    """Copies arbitrary text directly to the system clipboard without typing it."""
+    try:
+        import subprocess
+        process = subprocess.Popen('clip', stdin=subprocess.PIPE, shell=True)
+        process.communicate(text.encode('utf-8'))
+        print_success(f"Text copied to clipboard: '{text[:30]}...'")
+        return True
+    except Exception as e:
+        print_error(f"Clipboard text injection failed: {e}")
+        return False
+
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                    WINDOW MANAGEMENT CONTROLS                           │
+# └────────────────────────────────────────────────────────────────────────┘
+
+def WindowManage(action):
+    """Executes advanced window management operations via hardware hotkey injection."""
+    cmd = action.lower().strip()
+
+    if "minimize all" in cmd or "show desktop" in cmd or "desktop" in cmd:
+        keyboard.press_and_release("win+d")
+        print_success("All windows minimized. Desktop exposed.")
+
+    elif "snap left" in cmd:
+        keyboard.press_and_release("win+left")
+        print_success("Active window snapped to left half.")
+
+    elif "snap right" in cmd:
+        keyboard.press_and_release("win+right")
+        print_success("Active window snapped to right half.")
+
+    elif "switch window" in cmd or "alt tab" in cmd:
+        keyboard.press_and_release("alt+tab")
+        print_success("Window focus switched via Alt+Tab.")
+
+    elif "task view" in cmd:
+        keyboard.press_and_release("win+tab")
+        print_success("Task view panel activated.")
+
+    elif "maximize" in cmd:
+        keyboard.press_and_release("win+up")
+        print_success("Active window maximized.")
+
+    elif "minimize" in cmd:
+        keyboard.press_and_release("win+down")
+        print_success("Active window minimized.")
+
+    elif "close window" in cmd:
+        keyboard.press_and_release("alt+F4")
+        print_success("Active window closed via Alt+F4.")
+
+    elif "notification" in cmd or "action center" in cmd:
+        keyboard.press_and_release("win+a")
+        print_success("Windows Action Center panel toggled.")
+
+    elif "emoji" in cmd:
+        keyboard.press_and_release("win+.")
+        print_success("Emoji picker panel activated.")
+
+    else:
+        print_warning(f"Unrecognized window management command: '{cmd}'")
+    return True
+
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                      MEDIA PLAYBACK CONTROLS                            │
+# └────────────────────────────────────────────────────────────────────────┘
+
+def MediaControl(action):
+    """Dispatches global media playback control signals via hardware media keys."""
+    cmd = action.lower().strip()
+
+    if "pause" in cmd or "play" in cmd or "resume" in cmd:
+        keyboard.press_and_release("play/pause media")
+        print_success("Media play/pause toggled.")
+
+    elif "next" in cmd or "skip" in cmd:
+        keyboard.press_and_release("next track")
+        print_success("Skipped to next track.")
+
+    elif "previous" in cmd or "prev" in cmd or "back" in cmd:
+        keyboard.press_and_release("previous track")
+        print_success("Returned to previous track.")
+
+    elif "stop" in cmd:
+        keyboard.press_and_release("stop media")
+        print_success("Media playback stopped.")
+
+    else:
+        print_warning(f"Unrecognized media control command: '{cmd}'")
+    return True
+
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                     SYSTEM INFORMATION QUERIES                          │
+# └────────────────────────────────────────────────────────────────────────┘
+
+def SystemInfo(query):
+    """Retrieves real-time system telemetry data from the Windows kernel."""
+    cmd = query.lower().strip()
+
+    if "battery" in cmd:
+        try:
+            res = subprocess.run(
+                'powershell -Command "(Get-WmiObject Win32_Battery | Select-Object EstimatedChargeRemaining, BatteryStatus | Format-List)"',
+                capture_output=True, text=True, shell=True
+            )
+            output = res.stdout.strip()
+            if output:
+                # Parse the output for clean display
+                lines = [l.strip() for l in output.split('\n') if l.strip()]
+                for line in lines:
+                    if "EstimatedChargeRemaining" in line:
+                        percent = line.split(":")[-1].strip()
+                        print_success(f"Battery Level: {percent}%")
+                    elif "BatteryStatus" in line:
+                        status_code = line.split(":")[-1].strip()
+                        status = "Charging" if status_code == "2" else "Discharging" if status_code == "1" else "Unknown"
+                        print_info(f"Power State: {status}")
+            else:
+                print_warning("No battery detected. This may be a desktop system.")
+        except Exception as e:
+            print_error(f"Battery telemetry query failed: {e}")
+
+    elif "ip" in cmd or "wifi" in cmd or "network" in cmd:
+        try:
+            res = subprocess.run(
+                'powershell -Command "Get-NetIPAddress -AddressFamily IPv4 | Where-Object { $_.InterfaceAlias -notlike \'*Loopback*\' } | Select-Object IPAddress, InterfaceAlias | Format-Table -AutoSize"',
+                capture_output=True, text=True, shell=True
+            )
+            output = res.stdout.strip()
+            if output:
+                print_success(f"Active Network Interfaces:\n{output}")
+            else:
+                print_warning("No active network interfaces detected.")
+        except Exception as e:
+            print_error(f"Network telemetry query failed: {e}")
+
+    elif "disk" in cmd or "storage" in cmd:
+        try:
+            res = subprocess.run(
+                'powershell -Command "Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{N=\'Used(GB)\';E={[math]::Round($_.Used/1GB,2)}}, @{N=\'Free(GB)\';E={[math]::Round($_.Free/1GB,2)}} | Format-Table -AutoSize"',
+                capture_output=True, text=True, shell=True
+            )
+            output = res.stdout.strip()
+            if output:
+                print_success(f"Disk Usage Report:\n{output}")
+        except Exception as e:
+            print_error(f"Disk telemetry query failed: {e}")
+
+    elif "ram" in cmd or "memory" in cmd:
+        try:
+            res = subprocess.run(
+                'powershell -Command "$os = Get-WmiObject Win32_OperatingSystem; $total = [math]::Round($os.TotalVisibleMemorySize/1MB,2); $free = [math]::Round($os.FreePhysicalMemory/1MB,2); $used = [math]::Round($total - $free, 2); Write-Output \\"RAM: $used GB used / $total GB total ($free GB free)\\""',
+                capture_output=True, text=True, shell=True
+            )
+            output = res.stdout.strip()
+            if output:
+                print_success(output)
+        except Exception as e:
+            print_error(f"Memory telemetry query failed: {e}")
+
+    elif "cpu" in cmd or "processor" in cmd:
+        try:
+            res = subprocess.run(
+                'powershell -Command "Get-WmiObject Win32_Processor | Select-Object Name, NumberOfCores, LoadPercentage | Format-List"',
+                capture_output=True, text=True, shell=True
+            )
+            output = res.stdout.strip()
+            if output:
+                print_success(f"CPU Telemetry:\n{output}")
+        except Exception as e:
+            print_error(f"CPU telemetry query failed: {e}")
+
+    elif "uptime" in cmd:
+        try:
+            res = subprocess.run(
+                'powershell -Command "$boot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime; $uptime = (Get-Date) - $boot; Write-Output \\"Uptime: $($uptime.Days)d $($uptime.Hours)h $($uptime.Minutes)m\\""',
+                capture_output=True, text=True, shell=True
+            )
+            output = res.stdout.strip()
+            if output:
+                print_success(output)
+        except Exception as e:
+            print_error(f"Uptime query failed: {e}")
+
+    else:
+        print_warning(f"Unrecognized system info query: '{cmd}'")
+    return True
+
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                     TIMER & REMINDER ENGINE                             │
+# └────────────────────────────────────────────────────────────────────────┘
+
+def SetTimer(command):
+    """Sets a countdown timer that triggers a Windows notification toast when complete."""
+    import re
+    cmd = command.lower().strip()
+
+    # Parse duration from natural language (e.g. "5 minutes", "30 seconds", "1 hour")
+    match = re.search(r'(\d+)\s*(second|sec|minute|min|hour|hr)s?', cmd)
+    if not match:
+        print_warning(f"Could not parse timer duration from: '{cmd}'")
+        return False
+
+    value = int(match.group(1))
+    unit = match.group(2)
+
+    if unit in ["second", "sec"]:
+        total_seconds = value
+    elif unit in ["minute", "min"]:
+        total_seconds = value * 60
+    elif unit in ["hour", "hr"]:
+        total_seconds = value * 3600
+    else:
+        total_seconds = value
+
+    print_success(f"Timer armed for {value} {unit}(s). Countdown initiated.")
+
+    def _timer_worker(seconds, label):
+        time.sleep(seconds)
+        # Trigger Windows 10/11 native toast notification via PowerShell
+        toast_cmd = f'''powershell -Command "Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.MessageBox]::Show('Timer Complete: {label}', 'KAYRA Timer', 'OK', 'Information')"'''
+        subprocess.Popen(toast_cmd, shell=True)
+        print_success(f"Timer complete: {label}")
+
+    import threading
+    label = f"{value} {unit}(s)"
+    timer_thread = threading.Thread(target=_timer_worker, args=(total_seconds, label), daemon=True)
+    timer_thread.start()
+    return True
+
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                   KEYBOARD SHORTCUT INJECTION                           │
+# └────────────────────────────────────────────────────────────────────────┘
+
+def HotkeyShortcut(action):
+    """Injects common keyboard shortcuts as hardware-level key events."""
+    cmd = action.lower().strip()
+
+    shortcut_map = {
+        "undo":         "ctrl+z",
+        "redo":         "ctrl+y",
+        "select all":   "ctrl+a",
+        "save":         "ctrl+s",
+        "save file":    "ctrl+s",
+        "find":         "ctrl+f",
+        "search":       "ctrl+f",
+        "new tab":      "ctrl+t",
+        "close tab":    "ctrl+w",
+        "refresh":      "ctrl+r",
+        "reload":       "ctrl+r",
+        "fullscreen":   "f11",
+        "print":        "ctrl+p",
+        "zoom in":      "ctrl+plus",
+        "zoom out":     "ctrl+minus",
+        "reset zoom":   "ctrl+0",
+        "task manager":  "ctrl+shift+escape",
+        "run dialog":   "win+r",
+    }
+
+    matched = False
+    for keyword, keys in shortcut_map.items():
+        if keyword in cmd:
+            keyboard.press_and_release(keys)
+            print_success(f"Keyboard shortcut dispatched: {keyword.title()} ({keys})")
+            matched = True
+            break
+
+    if not matched:
+        print_warning(f"Unrecognized hotkey shortcut command: '{cmd}'")
+    return True
+
+# ┌────────────────────────────────────────────────────────────────────────┐
+# │                     WI-FI ADAPTER CONTROL                               │
+# └────────────────────────────────────────────────────────────────────────┘
+
+def ToggleWifi(action):
+    """Toggles the system Wi-Fi adapter on or off using PowerShell netsh commands."""
+    cmd = action.lower().strip()
+    try:
+        if "off" in cmd or "disable" in cmd or "disconnect" in cmd:
+            subprocess.run("netsh wlan disconnect", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            subprocess.run('netsh interface set interface "Wi-Fi" disable', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print_success("Wi-Fi adapter disabled. Network disconnected.")
+        elif "on" in cmd or "enable" in cmd or "connect" in cmd:
+            subprocess.run('netsh interface set interface "Wi-Fi" enable', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            print_success("Wi-Fi adapter enabled. Reconnecting to network...")
+        else:
+            print_warning(f"Unrecognized Wi-Fi command: '{cmd}'")
+    except Exception as e:
+        print_error(f"Wi-Fi adapter control failed: {e}")
+    return True
+
+# ┌────────────────────────────────────────────────────────────────────────┐
 # │                 ASYNCHRONOUS ORCHESTRATOR CHANNELS                     │
 # └────────────────────────────────────────────────────────────────────────┘
 
@@ -333,21 +774,69 @@ async def translate_and_execute(commands: list[str]):
 
         # 2. Match standard processing automation headers
         elif cmd_lower.startswith("open "):
-            tasks.append(asyncio.to_thread(OpenApp, cmd_str.removeprefix("open ")))
+            if "open it" in cmd_lower or "open file " in cmd_lower:
+                pass # Skip explicit file/it opens as per routing rules
+            else:
+                tasks.append(asyncio.to_thread(OpenApp, cmd_str.removeprefix("open ").strip()))
+        elif cmd_lower.startswith("general "):
+            pass # Skip general command flag
         elif cmd_lower.startswith("close "):
-            tasks.append(asyncio.to_thread(CloseApp, cmd_str.removeprefix("close ")))
+            tasks.append(asyncio.to_thread(CloseApp, cmd_str.removeprefix("close ").strip()))
         elif cmd_lower.startswith("play "):
-            tasks.append(asyncio.to_thread(PlayYoutube, cmd_str.removeprefix("play ")))
+            tasks.append(asyncio.to_thread(PlayYoutube, cmd_str.removeprefix("play ").strip()))
         elif cmd_lower.startswith("content "):
-            tasks.append(asyncio.to_thread(Content, cmd_str.removeprefix("content ")))
+            tasks.append(asyncio.to_thread(Content, cmd_str.removeprefix("content ").strip()))
         elif cmd_lower.startswith("youtube search "):
-            tasks.append(asyncio.to_thread(YoutubeSearch, cmd_str.removeprefix("youtube search ")))
-        elif cmd_lower.startswith("google search "):
-            tasks.append(asyncio.to_thread(WebSearch, cmd_str.removeprefix("google search ")))
+            tasks.append(asyncio.to_thread(YoutubeSearch, cmd_str.removeprefix("youtube search ").strip()))
+        elif cmd_lower.startswith("google search ") or cmd_lower.startswith("web search "):
+            prefix = "google search " if cmd_lower.startswith("google search ") else "web search "
+            tasks.append(asyncio.to_thread(WebSearch, cmd_str.removeprefix(prefix).strip()))
         elif cmd_lower.startswith("system "):
-            tasks.append(asyncio.to_thread(ExecuteCommand, cmd_str.removeprefix("system ")))
+            tasks.append(asyncio.to_thread(ExecuteCommand, cmd_str.removeprefix("system ").strip()))
+
+        # 3. Screenshot capture
+        elif "screenshot" in cmd_lower or "screen capture" in cmd_lower or "take screenshot" in cmd_lower:
+            tasks.append(asyncio.to_thread(TakeScreenshot))
+
+        # 4. Clipboard operations
+        elif cmd_lower in ["copy", "copy that"]:
+            tasks.append(asyncio.to_thread(ClipboardCopy))
+        elif cmd_lower in ["paste", "paste that"]:
+            tasks.append(asyncio.to_thread(ClipboardPaste))
+        elif cmd_lower.startswith("copy text "):
+            tasks.append(asyncio.to_thread(ClipboardCopyText, cmd_str.removeprefix("copy text ").strip()))
+
+        # 5. Window management
+        elif any(k in cmd_lower for k in ["minimize all", "show desktop", "snap left", "snap right",
+                "switch window", "alt tab", "task view", "maximize", "minimize",
+                "close window", "action center", "notification", "emoji"]):
+            tasks.append(asyncio.to_thread(WindowManage, cmd_str))
+
+        # 6. Media playback controls
+        elif any(k in cmd_lower for k in ["pause", "resume", "next track", "previous track",
+                "skip track", "stop media", "play media", "play pause"]):
+            tasks.append(asyncio.to_thread(MediaControl, cmd_str))
+
+        # 7. System information queries
+        elif any(k in cmd_lower for k in ["battery", "ip address", "disk", "storage",
+                "ram", "memory", "cpu", "processor", "uptime", "network info", "wifi status"]):
+            tasks.append(asyncio.to_thread(SystemInfo, cmd_str))
+
+        # 8. Timer and reminder
+        elif cmd_lower.startswith("timer ") or cmd_lower.startswith("set timer ") or cmd_lower.startswith("remind"):
+            tasks.append(asyncio.to_thread(SetTimer, cmd_str))
+
+        # 9. Hotkey shortcut injection
+        elif any(k in cmd_lower for k in ["undo", "redo", "select all", "save file",
+                "find", "new tab", "close tab", "refresh", "reload", "fullscreen",
+                "zoom in", "zoom out", "reset zoom", "task manager", "run dialog"]):
+            tasks.append(asyncio.to_thread(HotkeyShortcut, cmd_str))
+
+        # 10. Wi-Fi adapter control
+        elif "wifi" in cmd_lower or "wi-fi" in cmd_lower:
+            tasks.append(asyncio.to_thread(ToggleWifi, cmd_str))
             
-        # 3. Direct matching pass-through handling
+        # 11. Direct matching pass-through handling for system commands
         elif any(k in cmd_lower for k in ["volume", "brightness", "mute", "lock", "shutdown", "restart", "sleep"]):
             tasks.append(asyncio.to_thread(ExecuteCommand, cmd_str))
         else:
