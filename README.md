@@ -1,173 +1,171 @@
 # Kayra Desktop Assistant
 
-Kayra-DA is a high-performance, intelligent desktop assistant framework. It features a highly adaptable dual-mode **Centralized LLM Engine** paired with a professional **Offline Speech Matrix** (Speech-to-Text & Text-to-Speech). The engine is engineered to run seamlessly in both 100% offline local setups and hybrid cloud modes, ensuring absolute privacy, speed, and reliability.
+Kayra is a high-performance, intelligent desktop assistant designed to provide a robust, hands-free hardware and operating system control experience. Equipped with a hybrid **Centralized LLM Engine** and a continuous **Offline Speech Matrix** (Speech-to-Text & Kokoro TTS), Kayra translates your natural language spoken or typed queries into instant hardware actions, real-time web searches, or publication-grade deep research reports.
 
 ---
 
-### Key Features
+## 🛠️ Installation & Quick Start
 
-### Centralized LLM Engine (`modules/llm_engine.py`)
+### 1. Prerequisites
+Ensure you have **Python 3.10+** installed on your system.
 
-- **Hybrid Connectivity Matrix:** Automatically switches between offline local models (such as LM Studio or Ollama) and powerful Cloud APIs (Gemini 2.5 & Cohere Command).
-- **Intent-Driven Decision Making Model (DMM):** Uses high-speed classification to parse user inputs into structured system commands (e.g., deep research, application control, search queries, reminders) or general conversational responses.
-- **Stream-Based Chunk Generation:** Provides real-time token streaming for low-latency assistant responses.
-- **Robust Fallback Engine:** Features multi-level catch-and-retry patterns to handle network disruptions or local server authentication adjustments seamlessly.
-
-### Real-Time Search & RAG Engine (`modules/real_time_search.py`)
-
-- **Zero-Cost Web Scraper:** Scrapes DuckDuckGo without API keys, featuring automatic switching between text and scraper-based HTML backends.
-- **Retrieval-Augmented Generation (RAG):** Grounded LLM responses that merge real-time search context, volatile sliding short-term memory, and persistent long-term database storage.
-- **Dual-Tier Memory Integration:** Integrates search queries and RAG context with persistent memory storage automatically when triggers are detected.
-
-### Autonomous Deep Research Engine (`modules/deep_research.py`)
-
-- **Multi-Step Query Decomposition:** Automatically breaks down a complex central research topic into highly targeted sub-queries.
-- **Scrape-Based Context Compiler:** Crawls and compiles comprehensive context pools for all queries in parallel.
-- **Technical Synthesis Loop:** Uses the Centralized LLM Engine to synthesize context pools into exhaustive Markdown whitepapers.
-- **Durable Export Pipeline:** Saves generated reports to a dedicated local workspace under the `Reports/` directory.
-
-### Offline Speech Matrix (`modules/speech_to_text.py` & `modules/text_to_speech.py`)
-
-- **Continuous Speech-to-Text (STT):** Continuous, asynchronous browser-based STT transcription tailored to your preferred language matrix.
-- **Premium Offline TTS:** Powered by a premium, local offline Kokoro-ONNX voice engine, delivering human-like speech output with zero network dependencies.
-
----
-
-## Architectural Layout
-
-```
-project-kayra/
-├── modules/
-│   ├── __init__.py           # Package exports & legacy backwards-compatibility mappings
-│   ├── chatbot.py            # Conversational memory engine & persistent context layers
-│   ├── deep_research.py      # Autonomous query decomposition & technical whitepaper writer
-│   ├── llm_engine.py         # Decision Making Model & Chat Stream manager
-│   ├── real_time_search.py   # RAG-grounded search engine with auto-switching DuckDuckGo backends
-│   ├── text_to_speech.py     # Local offline Kokoro TTS Engine wrapper
-│   ├── speech_to_text.py     # Browser-based Continuous STT engine
-│   └── utils.py              # Shared helpers, logs, and path resolution
-├── Reports/                  # Output directory for autonomous research whitepapers
-├── tests/
-│   ├── test_engine.py        # LLM Engine integration and fallback tests
-│   └── test_voice.py         # Interactive TTS voice playground
-├── .env.example              # Central environment configuration template
-├── requirements.txt          # Python dependency declarations
-```
-
----
-
-## Quick Start
-
-### 1. Prerequisites & Installation
-
-Ensure you have Python 3.10+ installed. Set up your virtual environment and install the required dependencies:
+### 2. Setup Virtual Environment & Install Dependencies
+Create a isolated environment and install the required modules:
 
 ```bash
-# Initialize virtual environment
+# Clone or navigate to your project directory
+cd project-kayra
+
+# Initialize the virtual environment
 python -m venv .venv
 
-# Activate virtual environment
+# Activate the virtual environment
 # On Windows (PowerShell):
 .venv\Scripts\Activate.ps1
 # On Linux/macOS:
 source .venv/bin/activate
 
-# Install required modules
+# Install dependencies (automatically retrieves latest stable versions)
 pip install -r requirements.txt
 ```
 
-### 2. Environment Setup
-
-Create your local environment configuration file:
-
-1. Copy `.env.example` to `.env`.
-2. Open `.env` and fill in your details:
+### 3. Environment Configuration
+Copy `.env.example` to `.env` in the root folder and update the API keys and configurations:
 
 ```ini
-# Speech Matrix configurations
+# Voice Configuration
 INPUT_LANGUAGE=hi-IN
 ASSISTANT_VOICE=am_adam
 
-# Local LLM Server (LM Studio / Ollama)
+# Local Offline LLM Setup (Optional)
 FORCE_ONLINE=False
-LOCAL_BASE_URL=http://127.0.0.1:1234/v1
-LOCAL_API_KEY=lm-studio   # Update if you have custom auth enabled in your local server
+LOCAL_BASE_URL=http://localhost:1234/v1
+LOCAL_CHAT_MODEL=local-model
+LOCAL_DECISION_MODEL=local-model
 
-# Cloud APIs (Required if FORCE_ONLINE=True or local server is offline)
-CohereAPIKey=your_cohere_api_key
-GEMINI_API_KEY=your_gemini_api_key
+# Cloud APIs (Required for Hybrid/Online Mode)
+CohereAPIKey=YOUR_COHERE_API_KEY
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY
 ```
 
 ---
 
-## Running the Playgrounds & Integration Tests
+## 📖 User Manual & Automation Commands
 
-### LLM Engine Integration Test
+This manual outlines the exact natural language phrases, keywords, and text inputs to speak or type to trigger Kayra's automation protocols.
 
-Validates the classification boundaries (DMM) and checks streaming chat responses in both offline and online states.
+### 1. Web & Application Launching
+Intelligently launches local apps or opens domains directly in the default browser.
+* **How to say it:**
+  * `"open notepad"` -> Launches the Notepad application.
+  * `"open github.com"` -> Directly routes and opens GitHub in your browser.
+  * `"open youtube.com, gmail.com, and linkedin.com"` -> Launches all three websites simultaneously in separate browser tabs.
+
+### 2. Tab & Process Closer
+Fuzzy-matches visible windows to close them. For browsers, it simulates target ALT-key bypasses to close specific active tabs without altering your windows.
+* **How to say it:**
+  * `"close notepad"` -> Instantly terminates Notepad.
+  * `"close youtube"` -> Target and close active YouTube tabs in your browser.
+  * `"close chrome"` -> Gracefully shuts down the entire Chrome browser.
+
+### 3. System Hardware Operations
+Directly communicates with system kernels and hardware controllers.
+* **How to say it:**
+  * `"mute sound"` / `"unmute"` -> Toggles global audio state.
+  * `"volume up"` / `"volume down"` -> Increments/decrements volume by 10%.
+  * `"increase volume by 25%"` / `"set volume to 80%"` -> Absolute volume calibration.
+  * `"increase brightness to 75%"` / `"set brightness to 30%"` -> Changes monitor backlight.
+  * `"lock the computer"` -> Locks your active Windows session.
+  * `"shutdown the pc"` / `"restart system"` / `"sleep pc"` -> Power management.
+
+### 4. Desktop & Window Management
+Simulates clean structural layout changes to arrange your desktop.
+* **How to say it:**
+  * `"snap this window to the left"` / `"snap right"` -> Snaps the active window into a perfect split-screen.
+  * `"maximize window"` / `"minimize window"` -> Adjusts active window state.
+  * `"minimize all windows"` / `"show desktop"` -> Instantly clears the screen to reveal the desktop.
+  * `"switch window"` / `"alt tab"` -> Cycles through active applications.
+  * `"open task view"` -> Displays the Windows Task View board.
+  * `"open action center"` -> Launches the Windows Notification panel.
+  * `"open emoji picker"` -> Accesses the native Windows emoji keyboard.
+
+### 5. Keyboard & Application Shortcuts
+Quickly injects standard hardware shortcut combinations.
+* **How to say it:**
+  * `"undo that"` / `"redo that"` -> `Ctrl+Z` / `Ctrl+Y` triggers.
+  * `"save the file"` -> Simulates `Ctrl+S`.
+  * `"select all"` / `"find something"` -> `Ctrl+A` / `Ctrl+F` triggers.
+  * `"open a new tab"` / `"close this tab"` -> Browser tab management triggers.
+  * `"refresh this page"` / `"reload page"` -> Re-loads the active tab.
+  * `"go fullscreen"` -> Toggles `F11`.
+  * `"zoom in"` / `"zoom out"` / `"reset zoom"` -> Universal zoom levels adjustments.
+  * `"open task manager"` -> Launches Windows Task Manager (`Ctrl+Shift+Esc`).
+  * `"open run dialog"` -> Launches the Windows Run dialog (`Win+R`).
+
+### 6. Media Playback Controls
+Injects global OS-level multimedia keystrokes compatible with Spotify, YouTube, VLC, etc.
+* **How to say it:**
+  * `"pause the music"` / `"resume playback"` -> Toggles play/pause states.
+  * `"skip song"` / `"next track"` -> Plays the next media file.
+  * `"previous track"` / `"go back"` -> Plays the previous media file.
+  * `"stop media"` -> Stops all background player actions.
+
+### 7. Instant System Telemetry
+Pulls real-time system diagnostics directly from PowerShell and WMI interfaces.
+* **How to say it:**
+  * `"check battery status"` -> Outputs exact battery percentage and power state (charging/discharging).
+  * `"how much ram is used"` -> Displays used, total, and free system memory.
+  * `"check disk space"` -> Generates a storage usage breakdown for drives `C:` and `D:`.
+  * `"cpu telemetry"` -> Displays processor model details, number of cores, and current loads.
+  * `"system uptime"` -> Outputs how long your PC has been running since the last boot.
+  * `"what is my ip address"` -> Retrieves local connection credentials.
+
+### 8. Desktop Screenshots
+Grabs a screen capture instantly. Automatically detects OneDrive-synced desktops and falls back to home directories or picture files to prevent failures.
+* **How to say it:**
+  * `"take a screenshot"` / `"capture screen"` -> Saves a timestamped capture directly to your Desktop.
+
+### 9. Timers & Countdown Reminders
+Arms an asynchronous background thread that executes a countdown and prompts a native Windows toast notification upon completion.
+* **How to say it:**
+  * `"set a timer for 10 seconds"`
+  * `"set a timer for 5 minutes"`
+
+### 10. Hardware Wi-Fi Controls
+Quickly toggles your local Wi-Fi adapter using clean terminal calls.
+* **How to say it:**
+  * `"turn off wifi"` / `"disable wi-fi"` -> Shuts down the local Wi-Fi connection.
+  * `"turn on wifi"` / `"enable wi-fi"` -> Powers up the local Wi-Fi adapter and reconnects.
+
+### 11. Clipboard operations
+Direct, high-speed simulated clipboard manipulation.
+* **How to say it:**
+  * `"copy that"` / `"paste that"` -> Simulates copy/paste actions.
+  * `"copy text: [your text]"` -> Injects specific text straight into your system clipboard.
+  * `"type [your text]"` / `"write [your text]"` -> Dynamically types designated strings at your active cursor.
+
+### 12. RAG Web Search & Deep Research
+Invokes advanced data collection and technical research whitepaper synthesis.
+* **How to say it:**
+  * `"search on google: [topic]"` / `"search on youtube: [video]"` -> Standard web query targets.
+  * `"run deep research on [topic]"` / `"do deep research on [topic]"` -> Triggers Kayra's **advanced 6-stage autonomous research pipeline**. The model builds a research plan (10 queries), scrapes index pools, deep-extracts full page contents (stripping boilerplate via BeautifulSoup), performs gap analysis, completes follow-up scrapes, and compiles a comprehensive, publication-grade markdown technical whitepaper saved in the `Reports/` directory.
+
+---
+
+## 🏃 Running the Assistant Modules
+
+You can launch and test individual subsystems inside the sandbox or run the unified main controller:
 
 ```bash
-python tests/test_engine.py
-```
+# Run the Main Desktop Assistant Controller (STT + TTS + Automation Loop)
+python main.py
 
-_Note: If running on Windows, the test automatically reconfigures standard input/output to use `UTF-8` to ensure emojis and complex characters print perfectly without console crashes._
+# Test Windows Automation Subsystem directly (CLI prompt simulator)
+python modules/automation_windows.py
 
-### Interactive TTS Voice Playground
+# Test Advanced 6-stage Deep Research Engine
+python modules/deep_research.py
 
-Launches an interactive console utility that lets you type any sentence and hear it synthesized locally using the premium Kokoro TTS voice engine.
-
-```bash
+# Test TTS Audio Synthesizer Sandbox
 python tests/test_voice.py
 ```
-
-### Real-Time Search Sandbox
-
-Launches an interactive RAG console allowing you to query the live internet via DuckDuckGo. The assistant grounds its streaming replies using retrieved online resources.
-
-```bash
-python modules/real_time_search.py
-```
-
-### Deep Research Sandbox
-
-Launches the autonomous research loop. Enter any complex topic, and watch the model decompose it, retrieve data points, and synthesize a comprehensive technical whitepaper under the `Reports/` directory.
-
-```bash
-python modules/deep_research.py
-```
-
----
-
-## Conversational Memory & Storage Architecture
-
-The assistant implements a hybrid dual-tier memory system designed for maximum conversation speed, contextual relevance, and durable persistence.
-
-### 1. The Dual-Tier Memory System
-
-- **Short-Term Session Memory (Volatile)**:
-  - Maintained in-memory inside a volatile RAM list (`session_memory`).
-  - Stores all dialogues during the current running session.
-  - Bounded to a **sliding window of the last 6 messages** (3 conversational exchanges). This bounds context token usage to ensure high execution speeds and prevent model context window overflow.
-
-- **Long-Term Context Memory (Persistent)**:
-  - Restored from a local database file (`data/conversation.json`) at startup.
-  - Injected directly at the top of the LLM context pool on every request, creating a persistent personality baseline and history.
-  - Handled dynamically to survive sudden terminal halt events.
-
-### 2. When & How Data is Stored
-
-The assistant is engineered to avoid cluttering long-term memory with small talk. Instead, it selectively commits items to long-term storage based on user directives:
-
-- **Trigger Commands**:
-  The system automatically monitors user prompts for explicit memory-save trigger words:
-  `"store this"`, `"remember this"`, `"save this"`, `"memorize this"`, `"note this"`
-- **Storage Execution**:
-  When a trigger word is matched, the active user query and the corresponding response are appended to the permanent memory list and committed directly to disk.
-
-### 3. Fail-safe Atomic File Writing
-
-To protect your conversational history from sudden system terminations, the persistence layer utilizes an atomic file transaction scheme:
-
-1. Writes the fresh JSON context payload to a secondary backup location: `data/conversation_backup.json`.
-2. Replaces the primary `data/conversation.json` database via an atomic system-level copying transaction (`shutil.copy`).
-3. If the primary file ever gets corrupted or experiences half-write failures during unexpected shutdowns, the startup recovery pipeline automatically detects the error and restores the database using the secondary backup copy.
