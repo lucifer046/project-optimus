@@ -283,11 +283,11 @@ class SpeechToTextEngine:
             print_system("Shutting down headless Chrome background session...")
             try:
                 self.driver.execute_script("stopContinuousRecognition();")
-            except Exception:
+            except BaseException:
                 pass
             try:
                 self.driver.quit()
-            except Exception:
+            except BaseException:
                 pass
             self.driver = None
 

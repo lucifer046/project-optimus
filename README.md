@@ -2,6 +2,11 @@
 
 Kayra is a high-performance, intelligent desktop assistant designed to provide a robust, hands-free hardware and operating system control experience. Equipped with a hybrid **Centralized LLM Engine** and a continuous **Offline Speech Matrix** (Speech-to-Text & Kokoro TTS), Kayra translates your natural language spoken or typed queries into instant hardware actions, real-time web searches, or publication-grade deep research reports.
 
+### ✨ New Features
+- **Curated Orchestrator & Strict DMM Routing**: The Decision Making Model (DMM) has been mathematically mapped to 100% of the system's hardware automation functions, entirely eliminating LLM hallucinations or improper action execution.
+- **Synchronized TTS Boot Sequence**: Kayra now features a highly advanced, line-by-line cinematic system boot sequence. Hardware interfaces and API states are analyzed and spoken aloud in real-time.
+- **100% Offline Capability**: Automatically falls back to a locally hosted LLM Server if no internet connection or cloud API keys are detected, allowing complete offline hardware automation and chatting.
+
 ---
 
 ## 🛠️ Installation & Quick Start

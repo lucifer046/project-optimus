@@ -114,6 +114,22 @@ class DynamicVoiceEngine:
         self.onnx = KokoroOnnx(model_path, voices_path)
         self.sample_rate = 24000
         
+        # Initialize an asynchronous hardware playback queue to prevent CPU blocking
+        import queue
+        import threading
+        self.playback_queue = queue.Queue()
+        
+        def hardware_audio_worker():
+            while True:
+                chunk = self.playback_queue.get()
+                if chunk is None: break
+                audio, rate = chunk
+                sd.play(audio, rate)
+                sd.wait()
+                
+        self.playback_thread = threading.Thread(target=hardware_audio_worker, daemon=True)
+        self.playback_thread.start()
+        
         # => Dynamic vocal allocation style mapping
         if gender == "male":
             self.voice = "am_adam"  # High-quality North American Male style vector
@@ -137,8 +153,7 @@ class DynamicVoiceEngine:
             stream_generator = self.onnx.stream(clean_text, voice=self.voice, speed=1.1)
             
             for audio_samples, sample_rate in stream_generator:
-                sd.play(audio_samples, sample_rate)
-                sd.wait()
+                self.playback_queue.put((audio_samples, sample_rate))
         except Exception as e:
             print_error(f"Failed to stream voice output: {e}")
 

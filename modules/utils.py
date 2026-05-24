@@ -131,25 +131,32 @@ def print_section(title: str):
     console.print(Rule(f"[bold white]{title.upper()}[/bold white]", style="dim magenta", align="left"))
 
 
-def print_info(msg: str):
-    console.print(f"[info][INFO][/info] [text]{msg}[/text]")
+import os
 
+def safe_print(msg_format: str):
+    try:
+        console.print(msg_format)
+    except ValueError as e:
+        if "closed file" in str(e):
+            # Terminal was abruptly closed (e.g., via Ctrl+W shortcut hitting the terminal)
+            os._exit(1)
+        raise
+
+def print_info(msg: str):
+    safe_print(f"[info][INFO][/info] [text]{msg}[/text]")
 
 def print_success(msg: str):
-    console.print(f"[success][SUCCESS][/success] [text]{msg}[/text]")
-
+    safe_print(f"[success][SUCCESS][/success] [text]{msg}[/text]")
 
 def print_warning(msg: str):
-    console.print(f"[warning][WARNING][/warning] [text]{msg}[/text]")
-
+    safe_print(f"[warning][WARNING][/warning] [text]{msg}[/text]")
 
 def print_error(msg: str):
-    console.print(f"[error][ERROR][/error] [text]{msg}[/text]")
-
+    safe_print(f"[error][ERROR][/error] [text]{msg}[/text]")
 
 def print_critical(msg: str):
-    console.print(f"[critical][CRITICAL][/critical] [text]{msg}[/text]")
-
+    safe_print(f"[critical][CRITICAL][/critical] [text]{msg}[/text]")
 
 def print_system(msg: str):
-    console.print(f"[system][SYSTEM][/system] [text]{msg}[/text]")
+    safe_print(f"[system][SYSTEM][/system] [text]{msg}[/text]")
+
