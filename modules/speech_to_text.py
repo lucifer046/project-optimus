@@ -10,6 +10,7 @@ without losing words during processing delays.
 """
 
 import os
+import re
 import time
 import urllib.parse
 import atexit
@@ -272,6 +273,14 @@ class SpeechToTextEngine:
         except KeyboardInterrupt:
             return None
 
+    def clear_queue(self):
+        """Purges the JavaScript speech queue. Used to prevent TTS echoing loops."""
+        if self.driver:
+            try:
+                self.driver.execute_script("window.speechQueue = [];")
+            except BaseException:
+                pass
+
     def shutdown(self):
         """Closes the Selenium webdriver and terminates Chrome cleanly to prevent zombie processes."""
         try:
@@ -345,7 +354,28 @@ def translate_query(query):
     Returns:
         str: The translated English equivalent in capitalized format.
     """
-    english_query = mt.translate(query, "en", "auto")
+    # Pre-translation phonetic corrections:
+    # Google Speech-to-Text in Hindi ('hi-IN') transcribes the phonetic name "Kayra"
+    # either as the real Hindi name "कायरा" or the homophonic "कायर" (meaning "coward").
+    # We swap both to "Kayra" before translating so they remain stable.
+    corrected_query = query
+    if "कायर" in corrected_query:
+        corrected_query = corrected_query.replace("कायर", "Kayra")
+    if "कायरा" in corrected_query:
+        corrected_query = corrected_query.replace("कायरा", "Kayra")
+        
+    english_query = mt.translate(corrected_query, "en", "auto")
+    
+    # Post-translation robustness:
+    # Handle any cases where English/Hinglish transcribes "kaira" or "coward".
+    # We perform case-insensitive whole-word replacements to enforce the "Kayra" spelling.
+    english_query = re.sub(r"\bcowards\b", "Kayras", english_query, flags=re.IGNORECASE)
+    english_query = re.sub(r"\bcoward's\b", "Kayra's", english_query, flags=re.IGNORECASE)
+    english_query = re.sub(r"\bcoward\b", "Kayra", english_query, flags=re.IGNORECASE)
+    english_query = re.sub(r"\bkairas\b", "Kayras", english_query, flags=re.IGNORECASE)
+    english_query = re.sub(r"\bkaira's\b", "Kayra's", english_query, flags=re.IGNORECASE)
+    english_query = re.sub(r"\bkaira\b", "Kayra", english_query, flags=re.IGNORECASE)
+    
     return english_query.capitalize()
 
 

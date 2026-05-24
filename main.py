@@ -84,9 +84,47 @@ except ImportError:
     AUDIO_ENABLED = False
 
 def Listen():
-    """Captures audio from STT or falls back to text input if unavailable."""
+    """Captures audio from STT with intelligent barge-in support."""
     if AUDIO_ENABLED and 'stt_engine' in globals() and stt_engine is not None:
-        return stt_engine.listen_and_transcribe()
+        
+        while True:
+            # Block until we hear a sentence
+            user_input = stt_engine.listen_and_transcribe()
+            
+            if not user_input:
+                return ""
+                
+            # If the TTS is currently speaking, we must determine if the STT heard an echo or a barge-in
+            if 'tts_engine' in globals() and tts_engine and tts_engine.is_playing:
+                import difflib
+                
+                clean_input = user_input.lower().strip()
+                last_spoken = tts_engine.last_spoken_text
+                
+                # Check for explicit interruption commands first
+                barge_commands = ["stop", "wait", "shut up", "pause", "hold on", "kayra stop"]
+                if any(clean_input.startswith(cmd) for cmd in barge_commands):
+                    print_system("[BARGE-IN DETECTED] Interrupting TTS playback...")
+                    tts_engine.stop()
+                    return user_input
+                
+                # Otherwise, check if what it heard is just an echo of what it's saying
+                # Compare similarity ratio
+                similarity = difflib.SequenceMatcher(None, clean_input, last_spoken).ratio()
+                
+                # If similarity is high, it's an echo -> discard and keep listening
+                # Or if the input is a direct substring of the spoken text
+                if similarity > 0.4 or clean_input in last_spoken:
+                    continue 
+                
+                # If similarity is very low and it's not a stop command, it's the user interrupting with a new question!
+                print_system("[BARGE-IN DETECTED] Interrupting TTS playback...")
+                tts_engine.stop()
+                return user_input
+                
+            # If TTS is not playing, return the input normally
+            return user_input
+            
     return console.input("\n[bold cyan]User >[/bold cyan] ").strip()
 
 # 5. Mouth (Text-to-Speech integration)

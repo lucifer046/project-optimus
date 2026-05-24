@@ -113,19 +113,27 @@ class DynamicVoiceEngine:
         print_info("Initializing audio vectors on host CPU...")
         self.onnx = KokoroOnnx(model_path, voices_path)
         self.sample_rate = 24000
+        self.last_spoken_text = ""
         
         # Initialize an asynchronous hardware playback queue to prevent CPU blocking
         import queue
         import threading
         self.playback_queue = queue.Queue()
+        self.is_playing = False
         
         def hardware_audio_worker():
             while True:
                 chunk = self.playback_queue.get()
                 if chunk is None: break
+                
+                self.is_playing = True
                 audio, rate = chunk
                 sd.play(audio, rate)
                 sd.wait()
+                
+                # Turn off playing flag only when the queue is completely empty
+                if self.playback_queue.empty():
+                    self.is_playing = False
                 
         self.playback_thread = threading.Thread(target=hardware_audio_worker, daemon=True)
         self.playback_thread.start()
@@ -145,8 +153,13 @@ class DynamicVoiceEngine:
             
         console.print(f"\n[bold magenta][{self.assistant_name} Speaking]:[/] [italic text]{text}[/]")
             
+        import re
         # Strip simple markdown characters out of text before raw audio synthesis processing
         clean_text = text.replace("*", "").replace("#", "").strip()
+        # Strip emojis and unsupported special characters out so the TTS engine doesn't try to pronounce them
+        clean_text = re.sub(r'[^\w\s\.,!\?\-\'"]', '', clean_text)
+        
+        self.last_spoken_text = clean_text.lower()
         
         try:
             # speed=1.1 provides a clean, responsive human pacing structure
@@ -154,8 +167,19 @@ class DynamicVoiceEngine:
             
             for audio_samples, sample_rate in stream_generator:
                 self.playback_queue.put((audio_samples, sample_rate))
+                
         except Exception as e:
             print_error(f"Failed to stream voice output: {e}")
+
+    def stop(self):
+        """Instantly halts all audio playback and clears the playback queue (Barge-in protocol)."""
+        # Empty the queue cleanly
+        with self.playback_queue.mutex:
+            self.playback_queue.queue.clear()
+        
+        # Stop sounddevice immediately
+        sd.stop()
+        self.is_playing = False
 
 
 class TextToSpeechEngine(DynamicVoiceEngine):
